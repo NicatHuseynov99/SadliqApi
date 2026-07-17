@@ -12,7 +12,12 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// EF entity-lərində qarşılıqlı (iki tərəfli) referanslar olduğu üçün JSON-da dövr yaranmasının qarşısını alır
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger-i JWT Bearer dəstəyi ilə konfiqurasiya et
@@ -62,6 +67,10 @@ builder.Services.AddScoped<IReservationDal, EfReservationDal>();
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
 builder.Services.AddScoped<ITokenHelper, JwtHelper>();
+builder.Services.AddScoped<IVenueService, VenueManager>();
+builder.Services.AddScoped<IHallService, HallManager>();
+builder.Services.AddScoped<IMenuService, MenuManager>();
+builder.Services.AddScoped<IReservationService, ReservationManager>();
 
 // appsettings.json-dan JWT parametrlərini oxu
 var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>();

@@ -17,6 +17,7 @@ namespace Business.Security.Jwt
             _tokenOptions = configuration.GetSection("TokenOptions").Get<TokenOptions>();
         }
 
+        // İstifadəçi üçün imzalanmış JWT yaradır və istifadəçiyə qaytarılacaq token obyektini formalaşdırır
         public AccessToken CreateToken(User user)
         {
             _accessTokenExpiration = DateTime.Now.AddDays(_tokenOptions.AccessTokenExpiration);
