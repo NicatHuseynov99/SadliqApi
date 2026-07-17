@@ -14,7 +14,8 @@ namespace Business.Security.Jwt
 
         public JwtHelper(IConfiguration configuration)
         {
-            _tokenOptions = configuration.GetSection("TokenOptions").Get<TokenOptions>();
+            _tokenOptions = configuration.GetSection("TokenOptions").Get<TokenOptions>()
+                ?? throw new InvalidOperationException("appsettings.json-da 'TokenOptions' bölməsi tapılmadı.");
         }
 
         // İstifadəçi üçün imzalanmış JWT yaradır və istifadəçiyə qaytarılacaq token obyektini formalaşdırır

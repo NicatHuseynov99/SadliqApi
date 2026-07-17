@@ -48,11 +48,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // Endpoint-lərin Swagger-də C# metod adı ilə görünməsi (məs: api/venues/CreateAsync)
-    c.CustomOperationIds(apiDesc =>
-        apiDesc.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor cad
-            ? cad.MethodInfo.Name
-            : null);
 });
 
 // PostgreSQL bağlantısı
@@ -79,7 +74,8 @@ builder.Services.AddScoped<IMenuService, MenuManager>();
 builder.Services.AddScoped<IReservationService, ReservationManager>();
 
 // appsettings.json-dan JWT parametrlərini oxu
-var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>();
+var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>()
+    ?? throw new InvalidOperationException("appsettings.json-da 'TokenOptions' bölməsi tapılmadı.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -106,7 +102,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "SadliqApi V1");
-        c.DisplayOperationId();
+        
     });
 }
 
