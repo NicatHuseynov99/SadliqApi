@@ -1,0 +1,29 @@
+using Core.Entities;
+
+namespace Entities.Concrete
+{
+    // rezerv sorğuları
+    public class Reservation : IEntity
+    {
+        public int Id { get; set; }
+
+        public int CustomerId { get; set; }
+        public User? Customer { get; set; }
+
+        public int VenueId { get; set; }
+        public Venue? Venue { get; set; }
+
+        public int HallId { get; set; }
+        public Hall? Hall { get; set; }
+
+        public int MenuId { get; set; }
+        public Menu? Menu { get; set; }
+
+        public DateOnly EventDate { get; set; }
+        public int GuestCount { get; set; }
+        public string ContactPhone { get; set; } = string.Empty;
+        public string? Note { get; set; }
+        public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+}
