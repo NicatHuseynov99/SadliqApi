@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     [Authorize]
     public class ReservationsController : ControllerBase
@@ -30,7 +30,7 @@ namespace SadliqApi.Controllers
         }
 
         // Müştərinin öz göndərdiyi rezervlərin siyahısı
-        [HttpGet("mine")]
+        [HttpGet]
         public async Task<IActionResult> GetMine()
         {
             var customerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -39,7 +39,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz sarayına gələn rezerv sorğularını görməsi
-        [HttpGet("by-venue/{venueId}")]
+        [HttpGet("{venueId}")]
         public async Task<IActionResult> GetByVenue(int venueId)
         {
             var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -50,7 +50,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin rezervi təsdiq/rədd etməsi (Status: 0=Pending, 1=Confirmed, 2=Rejected, 3=Cancelled)
-        [HttpPut("{id}/status")]
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateReservationStatusDto dto)
         {
             var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

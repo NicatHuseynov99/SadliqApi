@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SadliqApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class MenusController : ControllerBase
     {
@@ -17,7 +17,7 @@ namespace SadliqApi.Controllers
         }
 
         // Bir sarayın bütün menyu paketlərini (50/60/70 AZN və s.) tərkibi ilə qaytarır
-        [HttpGet("by-venue/{venueId}")]
+        [HttpGet("{venueId}")]
         public async Task<IActionResult> GetByVenue(int venueId)
         {
             var result = await _menuService.GetByVenueIdAsync(venueId);

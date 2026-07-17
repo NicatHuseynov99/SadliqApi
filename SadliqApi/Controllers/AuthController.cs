@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SadliqApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -16,7 +16,7 @@ namespace SadliqApi.Controllers
         }
 
         // Yeni istifadəçi qeydiyyatı
-        [HttpPost("register")]
+        [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);
@@ -26,7 +26,7 @@ namespace SadliqApi.Controllers
         }
 
         // Giriş — uğurlu olsa JWT token qaytarır
-        [HttpPost("login")]
+        [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);
