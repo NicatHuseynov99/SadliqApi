@@ -17,7 +17,7 @@ namespace SadliqApi.Controllers
             _venueService = venueService;
         }
 
-        // Bütün təsdiqlənmiş sadlıq saraylarının siyahısı — hər kəs görə bilər
+        // Bütün təsdiqlənmiş sadlıq saraylarının siyahısı
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -35,7 +35,7 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Yeni saray əlavə etmək üçün giriş etmiş istifadəçi tələb olunur (owner)
+        // Yeni sadlıq sarayı əlavə edir (giriş tələb olunur)
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateVenueDto dto)

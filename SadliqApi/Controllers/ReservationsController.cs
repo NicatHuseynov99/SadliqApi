@@ -49,7 +49,7 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Restoran sahibinin rezervi təsdiq/rədd etməsi
+        // Restoran sahibinin rezervi təsdiq/rədd etməsi (Status: 0=Pending, 1=Confirmed, 2=Rejected, 3=Cancelled)
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateReservationStatusDto dto)
         {

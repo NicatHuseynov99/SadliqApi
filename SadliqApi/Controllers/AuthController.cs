@@ -15,6 +15,7 @@ namespace SadliqApi.Controllers
             _authService = authService;
         }
 
+        // Yeni istifadəçi qeydiyyatı
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
@@ -24,6 +25,7 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Giriş — uğurlu olsa JWT token qaytarır
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {

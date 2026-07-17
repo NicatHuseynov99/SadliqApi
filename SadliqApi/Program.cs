@@ -47,6 +47,12 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Endpoint-lərin Swagger-də C# metod adı ilə görünməsi (məs: api/venues/CreateAsync)
+    c.CustomOperationIds(apiDesc =>
+        apiDesc.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor cad
+            ? cad.MethodInfo.Name
+            : null);
 });
 
 // PostgreSQL bağlantısı
@@ -100,6 +106,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "SadliqApi V1");
+        c.DisplayOperationId();
     });
 }
 
