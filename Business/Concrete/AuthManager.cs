@@ -28,6 +28,10 @@ namespace Business.Concrete
 
             HashingHelper.CreatePasswordHash(dto.Password, out var passwordHash, out var passwordSalt);
 
+            // Admin rolu API ilə açılmır — yalnız Customer/Owner seçilə bilər
+            if (!Enum.TryParse<UserRole>(dto.Role, true, out var role) || role == UserRole.Admin)
+                role = UserRole.Customer;
+
             var user = new User
             {
                 FullName = dto.FullName,
@@ -35,7 +39,7 @@ namespace Business.Concrete
                 Phone = dto.Phone,
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
-                Role = UserRole.Customer,
+                Role = role,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -62,6 +66,15 @@ namespace Business.Concrete
             };
 
             return new SuccessDataResult<TokenResponseDto>(response, "Giriş uğurludur.");
+        }
+
+        // Token-dəki istifadəçinin öz profilini qaytarır
+        public async Task<IDataResult<User>> GetMeAsync(int userId)
+        {
+            var user = await _userDal.GetAsync(u => u.Id == userId);
+            return user is null
+                ? new ErrorDataResult<User>("İstifadəçi tapılmadı.")
+                : new SuccessDataResult<User>(user);
         }
     }
 }

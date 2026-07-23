@@ -2,6 +2,7 @@ using Business.Abstract;
 using Entities.Dtos.Menu;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
@@ -24,12 +25,49 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Tək menyunun tərkibi ilə birgə detalları
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var result = await _menuService.GetByIdAsync(id);
+            if (!result.Success)
+                return NotFound(result);
+            return Ok(result);
+        }
+
         // Restoran sahibinin yeni menyu paketi əlavə etməsi
-        [Authorize]
+        [Authorize(Roles = "Owner")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateMenuDto dto)
         {
-            var result = await _menuService.CreateAsync(dto);
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _menuService.CreateAsync(dto, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Restoran sahibinin öz menyusunu redaktə etməsi
+        [Authorize(Roles = "Owner")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMenuDto dto)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _menuService.UpdateAsync(id, dto, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Restoran sahibinin öz menyusunu silməsi
+        [Authorize(Roles = "Owner")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _menuService.DeleteAsync(id, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
             return Ok(result);
         }
     }

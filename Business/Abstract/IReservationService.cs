@@ -10,5 +10,6 @@ namespace Business.Abstract
         Task<IDataResult<List<Reservation>>> GetByCustomerAsync(int customerId);
         Task<IDataResult<List<Reservation>>> GetByVenueAsync(int venueId, int ownerId);
         Task<IResult> UpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto, int ownerId);
+        Task<IResult> CancelAsync(int reservationId, int customerId);
     }
 }

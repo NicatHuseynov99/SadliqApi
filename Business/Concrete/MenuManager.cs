@@ -11,11 +11,13 @@ namespace Business.Concrete
     {
         private readonly IMenuDal _menuDal;
         private readonly IMenuItemDal _menuItemDal;
+        private readonly IVenueDal _venueDal;
 
-        public MenuManager(IMenuDal menuDal, IMenuItemDal menuItemDal)
+        public MenuManager(IMenuDal menuDal, IMenuItemDal menuItemDal, IVenueDal venueDal)
         {
             _menuDal = menuDal;
             _menuItemDal = menuItemDal;
+            _venueDal = venueDal;
         }
 
         // Sarayın bütün menyu paketlərini (50/60/70 AZN və s.) tərkibi ilə birgə qaytarır
@@ -29,9 +31,26 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Menu>>(menus);
         }
 
-        // Menyunu və tərkibindəki yeməkləri (50/60/70 AZN paketi) birlikdə əlavə edir
-        public async Task<IDataResult<Menu>> CreateAsync(CreateMenuDto dto)
+        // Tək menyunun tərkibi ilə birgə detalları
+        public async Task<IDataResult<Menu>> GetByIdAsync(int id)
         {
+            var query = await _menuDal.GetListAsync(m => m.Id == id);
+            var menu = await query
+                .Include(m => m.Items)
+                .FirstOrDefaultAsync();
+
+            return menu is null
+                ? new ErrorDataResult<Menu>("Menyu tapılmadı.")
+                : new SuccessDataResult<Menu>(menu);
+        }
+
+        // Menyunu və tərkibindəki yeməkləri (50/60/70 AZN paketi) birlikdə əlavə edir
+        public async Task<IDataResult<Menu>> CreateAsync(CreateMenuDto dto, int ownerId)
+        {
+            var venue = await _venueDal.GetAsync(v => v.Id == dto.VenueId && v.OwnerId == ownerId);
+            if (venue is null)
+                return new ErrorDataResult<Menu>("Bu saray sizə aid deyil.");
+
             var menu = new Menu
             {
                 VenueId = dto.VenueId,
@@ -54,6 +73,40 @@ namespace Business.Concrete
             }
 
             return new SuccessDataResult<Menu>(menu, "Menyu əlavə olundu.");
+        }
+
+        // Restoran sahibinin öz menyusunun əsas məlumatlarını redaktə etməsi
+        public async Task<IResult> UpdateAsync(int id, UpdateMenuDto dto, int ownerId)
+        {
+            var menu = await _menuDal.GetAsync(m => m.Id == id);
+            if (menu is null)
+                return new ErrorResult("Menyu tapılmadı.");
+
+            var venue = await _venueDal.GetAsync(v => v.Id == menu.VenueId && v.OwnerId == ownerId);
+            if (venue is null)
+                return new ErrorResult("Bu menyu sizə aid deyil.");
+
+            menu.Name = dto.Name;
+            menu.PricePerPerson = dto.PricePerPerson;
+            menu.Description = dto.Description;
+
+            await _menuDal.UpdateAsync(menu);
+            return new SuccessResult("Menyu yeniləndi.");
+        }
+
+        // Restoran sahibinin öz menyusunu silməsi
+        public async Task<IResult> DeleteAsync(int id, int ownerId)
+        {
+            var menu = await _menuDal.GetAsync(m => m.Id == id);
+            if (menu is null)
+                return new ErrorResult("Menyu tapılmadı.");
+
+            var venue = await _venueDal.GetAsync(v => v.Id == menu.VenueId && v.OwnerId == ownerId);
+            if (venue is null)
+                return new ErrorResult("Bu menyu sizə aid deyil.");
+
+            await _menuDal.DeleteAsync(menu);
+            return new SuccessResult("Menyu silindi.");
         }
     }
 }

@@ -1,6 +1,8 @@
 using Business.Abstract;
 using Entities.Dtos.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
@@ -32,6 +34,18 @@ namespace SadliqApi.Controllers
             var result = await _authService.LoginAsync(dto);
             if (!result.Success)
                 return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Token-dəki istifadəçinin öz profilini görməsi
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> Me()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.GetMeAsync(userId);
+            if (!result.Success)
+                return NotFound(result);
             return Ok(result);
         }
     }

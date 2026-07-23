@@ -124,5 +124,27 @@ namespace Business.Concrete
 
             return new SuccessResult("Status yeniləndi.");
         }
+
+        // Müştərinin öz göndərdiyi rezerv sorğusunu ləğv etməsi; günü yenidən boş edir
+        public async Task<IResult> CancelAsync(int reservationId, int customerId)
+        {
+            var reservation = await _reservationDal.GetAsync(r => r.Id == reservationId && r.CustomerId == customerId);
+            if (reservation is null)
+                return new ErrorResult("Rezerv tapılmadı və ya sizə aid deyil.");
+
+            reservation.Status = ReservationStatus.Cancelled;
+            await _reservationDal.UpdateAsync(reservation);
+
+            var availability = await _availabilityDal.GetAsync(
+                a => a.HallId == reservation.HallId && a.Date == reservation.EventDate);
+
+            if (availability != null)
+            {
+                availability.Status = AvailabilityStatus.Available;
+                await _availabilityDal.UpdateAsync(availability);
+            }
+
+            return new SuccessResult("Rezerv ləğv edildi.");
+        }
     }
 }
