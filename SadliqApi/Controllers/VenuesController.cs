@@ -25,16 +25,11 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Şəhər, tarix, qiymət və tutuma görə axtarış/filtr
+        // Ana səhifənin siyahısı: axtarış, filtr, sıralama və səhifələmə
         [HttpGet]
-        public async Task<IActionResult> Search(
-            [FromQuery] string? city,
-            [FromQuery] DateOnly? date,
-            [FromQuery] decimal? minPrice,
-            [FromQuery] decimal? maxPrice,
-            [FromQuery] int? capacity)
+        public async Task<IActionResult> Search([FromQuery] VenueSearchDto dto)
         {
-            var result = await _venueService.SearchAsync(city, date, minPrice, maxPrice, capacity);
+            var result = await _venueService.SearchAsync(dto);
             return Ok(result);
         }
 

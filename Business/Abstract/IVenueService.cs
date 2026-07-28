@@ -1,5 +1,6 @@
 using Core.Utilities.Results;
 using Entities.Concrete;
+using Entities.Dtos.Common;
 using Entities.Dtos.Venue;
 
 namespace Business.Abstract
@@ -7,7 +8,7 @@ namespace Business.Abstract
     public interface IVenueService
     {
         Task<IDataResult<List<Venue>>> GetAllAsync();
-        Task<IDataResult<List<Venue>>> SearchAsync(string? city, DateOnly? date, decimal? minPrice, decimal? maxPrice, int? capacity);
+        Task<IDataResult<PagedResult<Venue>>> SearchAsync(VenueSearchDto dto);
         Task<IDataResult<Venue>> GetByIdAsync(int id);
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);

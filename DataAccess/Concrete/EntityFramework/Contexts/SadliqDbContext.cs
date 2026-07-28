@@ -18,6 +18,8 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
         public DbSet<HallAvailability> HallAvailabilities => Set<HallAvailability>();
         public DbSet<Reservation> Reservations => Set<Reservation>();
+        public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
+        public DbSet<Review> Reviews => Set<Review>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -44,6 +46,12 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasOne(r => r.Menu).WithMany()
                 .HasForeignKey(r => r.MenuId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Rəy yazan istifadəçi silinsə, rəy qalsın (müəllif adı onsuz da saxlanılır)
+            b.Entity<Review>()
+                .HasOne(r => r.Customer).WithMany()
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             base.OnModelCreating(b);
         }

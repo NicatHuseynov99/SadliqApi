@@ -155,6 +155,9 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<int>("MenuId")
                         .HasColumnType("integer");
 
@@ -219,6 +222,43 @@ namespace DataAccess.Migrations
                     b.HasIndex("VenueId");
 
                     b.ToTable("Reservations");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("Entities.Concrete.User", b =>
@@ -312,6 +352,28 @@ namespace DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Venues");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueFeature", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("VenueFeatures");
                 });
 
             modelBuilder.Entity("Entities.Concrete.VenueImage", b =>
@@ -432,6 +494,35 @@ namespace DataAccess.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.Review", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Entities.Concrete.Venue", "Venue")
+                        .WithMany("Reviews")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueFeature", b =>
+                {
+                    b.HasOne("Entities.Concrete.Venue", "Venue")
+                        .WithMany("Features")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Entities.Concrete.VenueImage", b =>
                 {
                     b.HasOne("Entities.Concrete.Venue", "Venue")
@@ -457,11 +548,15 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Entities.Concrete.Venue", b =>
                 {
+                    b.Navigation("Features");
+
                     b.Navigation("Halls");
 
                     b.Navigation("Images");
 
                     b.Navigation("Menus");
+
+                    b.Navigation("Reviews");
                 });
 #pragma warning restore 612, 618
         }

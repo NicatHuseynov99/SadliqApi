@@ -2,6 +2,7 @@ using Business.Abstract;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
+using Entities.Dtos.Common;
 using Entities.Dtos.Venue;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,58 +17,106 @@ namespace Business.Concrete
             _venueDal = venueDal;
         }
 
-        // Yalnız admin tərəfindən təsdiqlənmiş sarayları, şəkil/zal/menyuları ilə birgə qaytarır
+        // Yalnız admin tərəfindən təsdiqlənmiş sarayları bütün detalları ilə qaytarır.
+        // Zalların dolu günləri də buraya daxildir ki, ana səhifə tək sorğu ilə dolsun —
+        // yalnız bu gündən sonrakı və boş olmayan günlər göndərilir (cavab kiçik qalsın deyə).
         public async Task<IDataResult<List<Venue>>> GetAllAsync()
         {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+
             var query = await _venueDal.GetListAsync(v => v.IsApproved);
             var venues = await query
                 .Include(v => v.Images)
                 .Include(v => v.Halls)
+                    .ThenInclude(h => h.Availability.Where(a => a.Date >= today && a.Status != AvailabilityStatus.Available))
                 .Include(v => v.Menus)
+                .Include(v => v.Features)
+                .Include(v => v.Reviews)
                 .ToListAsync();
 
             return new SuccessDataResult<List<Venue>>(venues);
         }
 
-        // Şəhər, tarix, qiymət və tutuma görə təsdiqlənmiş saraylar arasında axtarış
-        public async Task<IDataResult<List<Venue>>> SearchAsync(string? city, DateOnly? date, decimal? minPrice, decimal? maxPrice, int? capacity)
+        // Ana səhifənin siyahısı: axtarış + filtr + sıralama + səhifələmə (sonsuz scroll üçün)
+        public async Task<IDataResult<PagedResult<Venue>>> SearchAsync(VenueSearchDto dto)
         {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            var page = dto.Page < 1 ? 1 : dto.Page;
+            var pageSize = dto.PageSize is < 1 or > 50 ? 12 : dto.PageSize;
+
             var query = await _venueDal.GetListAsync(v => v.IsApproved);
-            var filtered = query
-                .Include(v => v.Halls)
-                .Include(v => v.Menus)
-                .AsQueryable();
+            var filtered = query.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(city))
-                filtered = filtered.Where(v => v.City.ToLower() == city.ToLower());
+            if (!string.IsNullOrWhiteSpace(dto.Q))
+            {
+                var term = $"%{dto.Q.Trim()}%";
+                filtered = filtered.Where(v =>
+                    EF.Functions.ILike(v.Name, term) || EF.Functions.ILike(v.Address, term));
+            }
 
-            if (minPrice.HasValue)
-                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson >= minPrice));
+            if (!string.IsNullOrWhiteSpace(dto.City))
+                filtered = filtered.Where(v => v.City.ToLower() == dto.City.ToLower());
 
-            if (maxPrice.HasValue)
-                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson <= maxPrice));
+            if (dto.MinPrice.HasValue)
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson >= dto.MinPrice));
 
-            if (capacity.HasValue)
-                filtered = filtered.Where(v => v.Halls.Any(h => h.Capacity >= capacity));
+            if (dto.MaxPrice.HasValue)
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson <= dto.MaxPrice));
+
+            if (dto.Capacity.HasValue)
+                filtered = filtered.Where(v => v.Halls.Any(h => h.Capacity >= dto.Capacity));
 
             // seçilmiş gündə ən azı bir zalı boş (Booked/Held olmayan) olan saraylar
-            if (date.HasValue)
+            if (dto.Date.HasValue)
                 filtered = filtered.Where(v => v.Halls.Any(h =>
-                    !h.Availability.Any(a => a.Date == date && a.Status != AvailabilityStatus.Available)));
+                    !h.Availability.Any(a => a.Date == dto.Date && a.Status != AvailabilityStatus.Available)));
 
-            var venues = await filtered.ToListAsync();
-            return new SuccessDataResult<List<Venue>>(venues);
+            // Səhifələmədən əvvəl ümumi sayı götürürük ki, frontend "daha var?" sualına cavab tapsın
+            var totalCount = await filtered.CountAsync();
+
+            filtered = dto.Sort switch
+            {
+                "price-asc" => filtered.OrderBy(v => v.Menus.Min(m => (decimal?)m.PricePerPerson)).ThenBy(v => v.Id),
+                "price-desc" => filtered.OrderByDescending(v => v.Menus.Min(m => (decimal?)m.PricePerPerson)).ThenBy(v => v.Id),
+                _ => filtered.OrderByDescending(v => v.Reviews.Average(r => (double?)r.Rating) ?? 0).ThenBy(v => v.Id),
+            };
+
+            var venues = await filtered
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(v => v.Images)
+                .Include(v => v.Halls)
+                    .ThenInclude(h => h.Availability.Where(a => a.Date >= today && a.Status != AvailabilityStatus.Available))
+                .Include(v => v.Menus)
+                .Include(v => v.Features)
+                .Include(v => v.Reviews)
+                .ToListAsync();
+
+            var result = new PagedResult<Venue>
+            {
+                Items = venues,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return new SuccessDataResult<PagedResult<Venue>>(result);
         }
 
         // Tək sarayın bütün detallarını (şəkillər, zallar+media+dolu günlər, menyular+tərkib) qaytarır
         public async Task<IDataResult<Venue>> GetByIdAsync(int id)
         {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+
             var query = await _venueDal.GetListAsync(v => v.Id == id);
             var venue = await query
                 .Include(v => v.Images)
                 .Include(v => v.Halls).ThenInclude(h => h.Media)
-                .Include(v => v.Halls).ThenInclude(h => h.Availability)
+                .Include(v => v.Halls)
+                    .ThenInclude(h => h.Availability.Where(a => a.Date >= today && a.Status != AvailabilityStatus.Available))
                 .Include(v => v.Menus).ThenInclude(m => m.Items)
+                .Include(v => v.Features)
+                .Include(v => v.Reviews)
                 .FirstOrDefaultAsync();
 
             return venue is null

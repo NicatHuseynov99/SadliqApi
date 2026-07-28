@@ -22,5 +22,7 @@ namespace Entities.Concrete
         public ICollection<VenueImage> Images { get; set; } = new List<VenueImage>();
         public ICollection<Hall> Halls { get; set; } = new List<Hall>();
         public ICollection<Menu> Menus { get; set; } = new List<Menu>();
+        public ICollection<VenueFeature> Features { get; set; } = new List<VenueFeature>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }
