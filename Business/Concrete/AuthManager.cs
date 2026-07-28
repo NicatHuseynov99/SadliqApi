@@ -34,7 +34,8 @@ namespace Business.Concrete
 
             var user = new User
             {
-                FullName = dto.FullName,
+                FirstName = dto.FirstName.Trim(),
+                LastName = dto.LastName.Trim(),
                 Email = dto.Email,
                 Phone = dto.Phone,
                 PasswordHash = passwordHash,
@@ -75,6 +76,54 @@ namespace Business.Concrete
             return user is null
                 ? new ErrorDataResult<User>("İstifadəçi tapılmadı.")
                 : new SuccessDataResult<User>(user);
+        }
+
+        // Ad və telefonu yeniləyir; email və rol dəyişdirilmir
+        public async Task<IDataResult<User>> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.FirstName))
+                return new ErrorDataResult<User>("Ad boş ola bilməz.");
+
+            if (string.IsNullOrWhiteSpace(dto.LastName))
+                return new ErrorDataResult<User>("Soyad boş ola bilməz.");
+
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+                return new ErrorDataResult<User>("Telefon nömrəsi boş ola bilməz.");
+
+            var user = await _userDal.GetAsync(u => u.Id == userId);
+            if (user is null)
+                return new ErrorDataResult<User>("İstifadəçi tapılmadı.");
+
+            user.FirstName = dto.FirstName.Trim();
+            user.LastName = dto.LastName.Trim();
+            user.Phone = dto.Phone.Trim();
+            await _userDal.UpdateAsync(user);
+
+            return new SuccessDataResult<User>(user, "Məlumatlarınız yeniləndi.");
+        }
+
+        // Cari parolu yoxlayıb yenisini hashləyir
+        public async Task<IResult> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
+                return new ErrorResult("Yeni parol ən azı 6 simvol olmalıdır.");
+
+            var user = await _userDal.GetAsync(u => u.Id == userId);
+            if (user is null)
+                return new ErrorResult("İstifadəçi tapılmadı.");
+
+            if (!HashingHelper.VerifyPasswordHash(dto.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+                return new ErrorResult("Cari parol yanlışdır.");
+
+            if (HashingHelper.VerifyPasswordHash(dto.NewPassword, user.PasswordHash, user.PasswordSalt))
+                return new ErrorResult("Yeni parol köhnə parolla eyni ola bilməz.");
+
+            HashingHelper.CreatePasswordHash(dto.NewPassword, out var passwordHash, out var passwordSalt);
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+            await _userDal.UpdateAsync(user);
+
+            return new SuccessResult("Parolunuz dəyişdirildi.");
         }
     }
 }

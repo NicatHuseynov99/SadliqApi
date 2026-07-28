@@ -48,5 +48,29 @@ namespace SadliqApi.Controllers
                 return NotFound(result);
             return Ok(result);
         }
+
+        // İstifadəçi öz ad və telefonunu yeniləyir
+        [Authorize]
+        [HttpPut]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.UpdateProfileAsync(userId, dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // İstifadəçi öz parolunu dəyişir
+        [Authorize]
+        [HttpPut]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.ChangePasswordAsync(userId, dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }
