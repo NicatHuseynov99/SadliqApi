@@ -12,17 +12,61 @@ namespace Business.Concrete
         private readonly IReservationDal _reservationDal;
         private readonly IHallAvailabilityDal _availabilityDal;
         private readonly IVenueDal _venueDal;
+        private readonly IHallDal _hallDal;
+        private readonly IMenuDal _menuDal;
 
-        public ReservationManager(IReservationDal reservationDal, IHallAvailabilityDal availabilityDal, IVenueDal venueDal)
+        public ReservationManager(
+            IReservationDal reservationDal,
+            IHallAvailabilityDal availabilityDal,
+            IVenueDal venueDal,
+            IHallDal hallDal,
+            IMenuDal menuDal)
         {
             _reservationDal = reservationDal;
             _availabilityDal = availabilityDal;
             _venueDal = venueDal;
+            _hallDal = hallDal;
+            _menuDal = menuDal;
         }
 
-        // Zal + gün + menyu seçib rezerv sorğusu göndərir; eyni gün üçün ikiqat rezerv qadağandır
+        // Zal + gün + menyu seçib rezerv sorğusu göndərir.
+        // Bütün yoxlamalar server tərəfdə aparılır — frontend məhdudiyyətlərinə etibar edilmir.
         public async Task<IDataResult<Reservation>> CreateAsync(CreateReservationDto dto, int customerId)
         {
+            // Tədbir tarixi keçmişdə və ya bu gün ola bilməz
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            if (dto.EventDate <= today)
+                return new ErrorDataResult<Reservation>("Tədbir tarixi bugündən sonrakı gün olmalıdır.");
+
+            // Saray mövcud və təsdiqlənmiş olmalıdır
+            var venue = await _venueDal.GetAsync(v => v.Id == dto.VenueId);
+            if (venue is null)
+                return new ErrorDataResult<Reservation>("Saray tapılmadı.");
+
+            if (!venue.IsApproved)
+                return new ErrorDataResult<Reservation>("Bu saray hələ təsdiqlənməyib.");
+
+            // Zal həmin saraya aid olmalıdır
+            var hall = await _hallDal.GetAsync(h => h.Id == dto.HallId);
+            if (hall is null || hall.VenueId != dto.VenueId)
+                return new ErrorDataResult<Reservation>("Seçilən zal bu saraya aid deyil.");
+
+            // Menyu da həmin saraya aid olmalıdır
+            var menu = await _menuDal.GetAsync(m => m.Id == dto.MenuId);
+            if (menu is null || menu.VenueId != dto.VenueId)
+                return new ErrorDataResult<Reservation>("Seçilən menyu bu saraya aid deyil.");
+
+            // Qonaq sayı zalın tutumunu aşa bilməz
+            if (dto.GuestCount < 1)
+                return new ErrorDataResult<Reservation>("Qonaq sayı ən azı 1 olmalıdır.");
+
+            if (dto.GuestCount > hall.Capacity)
+                return new ErrorDataResult<Reservation>(
+                    $"Bu zalın tutumu {hall.Capacity} nəfərdir, {dto.GuestCount} qonaq yerləşdirmək mümkün deyil.");
+
+            if (string.IsNullOrWhiteSpace(dto.ContactPhone))
+                return new ErrorDataResult<Reservation>("Əlaqə telefonu boş ola bilməz.");
+
             var existingAvailability = await _availabilityDal.GetAsync(
                 a => a.HallId == dto.HallId && a.Date == dto.EventDate);
 
