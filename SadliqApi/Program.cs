@@ -64,6 +64,8 @@ builder.Services.AddScoped<IMenuDal, EfMenuDal>();
 builder.Services.AddScoped<IMenuItemDal, EfMenuItemDal>();
 builder.Services.AddScoped<IHallAvailabilityDal, EfHallAvailabilityDal>();
 builder.Services.AddScoped<IReservationDal, EfReservationDal>();
+builder.Services.AddScoped<IFavoriteDal, EfFavoriteDal>();
+builder.Services.AddScoped<IReviewDal, EfReviewDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -72,6 +74,8 @@ builder.Services.AddScoped<IVenueService, VenueManager>();
 builder.Services.AddScoped<IHallService, HallManager>();
 builder.Services.AddScoped<IMenuService, MenuManager>();
 builder.Services.AddScoped<IReservationService, ReservationManager>();
+builder.Services.AddScoped<IFavoriteService, FavoriteManager>();
+builder.Services.AddScoped<IReviewService, ReviewManager>();
 
 // appsettings.json-dan JWT parametrlərini oxu
 var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>()

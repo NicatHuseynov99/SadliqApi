@@ -20,6 +20,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<Reservation> Reservations => Set<Reservation>();
         public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
         public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<Favorite> Favorites => Set<Favorite>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -46,6 +47,11 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasOne(r => r.Menu).WithMany()
                 .HasForeignKey(r => r.MenuId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Eyni istifadəçi eyni sarayı iki dəfə seçilmişlərə əlavə edə bilməz
+            b.Entity<Favorite>()
+                .HasIndex(f => new { f.UserId, f.VenueId })
+                .IsUnique();
 
             // Rəy yazan istifadəçi silinsə, rəy qalsın (müəllif adı onsuz da saxlanılır)
             b.Entity<Review>()
