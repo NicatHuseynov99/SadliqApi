@@ -10,6 +10,15 @@ namespace Entities.Dtos.Venue
         public decimal? MaxPrice { get; set; }
         public int? Capacity { get; set; }
 
+        // Seçilmiş özəlliklər — sarayda hamısı olmalıdır (parkinq, gəlin otağı...)
+        public List<string>? Features { get; set; }
+
+        // Müştərinin ümumi büdcəsi: menyu qiyməti × qonaq sayı bu məbləği aşmamalıdır
+        public decimal? Budget { get; set; }
+
+        // Minimum orta reytinq (məsələn 4.5)
+        public double? MinRating { get; set; }
+
         // "rating-desc" (default), "price-asc", "price-desc"
         public string? Sort { get; set; }
 

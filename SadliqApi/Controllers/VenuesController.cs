@@ -33,6 +33,14 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Filtr panelinin seçimləri: şəhərlər, özəlliklər, qiymət və tutum aralığı
+        [HttpGet]
+        public async Task<IActionResult> GetFilterOptions()
+        {
+            var result = await _venueService.GetFilterOptionsAsync();
+            return Ok(result);
+        }
+
         // Tək sarayın bütün detalları (şəkillər, zallar, menyular)
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)

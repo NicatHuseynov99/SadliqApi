@@ -66,6 +66,24 @@ namespace Business.Concrete
             if (dto.Capacity.HasValue)
                 filtered = filtered.Where(v => v.Halls.Any(h => h.Capacity >= dto.Capacity));
 
+            // Seçilən özəlliklərin HAMISI sarayda olmalıdır
+            if (dto.Features is { Count: > 0 })
+                foreach (var feature in dto.Features)
+                    filtered = filtered.Where(v => v.Features.Any(f => f.Name == feature));
+
+            // Ümumi büdcə: ən azı bir menyu üçün qiymət × qonaq sayı büdcəyə sığmalıdır.
+            // Qonaq sayı verilməyibsə, büdcə bir nəfərlik maksimum kimi qəbul olunur.
+            if (dto.Budget.HasValue)
+            {
+                var guests = dto.Capacity is > 0 ? dto.Capacity.Value : 1;
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson * guests <= dto.Budget));
+            }
+
+            // Orta reytinq — rəyi olmayan saraylar bu filtrdə görünmür
+            if (dto.MinRating.HasValue)
+                filtered = filtered.Where(v =>
+                    v.Reviews.Any() && v.Reviews.Average(r => (double)r.Rating) >= dto.MinRating);
+
             // seçilmiş gündə ən azı bir zalı boş (Booked/Held olmayan) olan saraylar
             if (dto.Date.HasValue)
                 filtered = filtered.Where(v => v.Halls.Any(h =>
@@ -101,6 +119,43 @@ namespace Business.Concrete
             };
 
             return new SuccessDataResult<PagedResult<Venue>>(result);
+        }
+
+        // Filtr panelinin seçimlərini bazadakı real dataya görə qurur:
+        // hansı şəhərlər var, hansı özəlliklər neçə sarayda var, qiymət və tutum aralığı nədir
+        public async Task<IDataResult<VenueFilterOptionsDto>> GetFilterOptionsAsync()
+        {
+            var query = await _venueDal.GetListAsync(v => v.IsApproved);
+
+            var cities = await query
+                .GroupBy(v => v.City)
+                .Select(g => new FilterOption { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(o => o.Count)
+                .ToListAsync();
+
+            // Yalnız ən azı 5 sarayda olan özəlliklər — tək-tük olanlar filtr kimi mənasızdır
+            var features = await query
+                .SelectMany(v => v.Features)
+                .GroupBy(f => f.Name)
+                .Select(g => new FilterOption { Name = g.Key, Count = g.Count() })
+                .Where(o => o.Count >= 5)
+                .OrderByDescending(o => o.Count)
+                .ToListAsync();
+
+            var prices = await query.SelectMany(v => v.Menus).Select(m => m.PricePerPerson).ToListAsync();
+            var capacities = await query.SelectMany(v => v.Halls).Select(h => h.Capacity).ToListAsync();
+
+            var options = new VenueFilterOptionsDto
+            {
+                Cities = cities,
+                Features = features,
+                MinPrice = prices.Count > 0 ? prices.Min() : 0,
+                MaxPrice = prices.Count > 0 ? prices.Max() : 0,
+                MinCapacity = capacities.Count > 0 ? capacities.Min() : 0,
+                MaxCapacity = capacities.Count > 0 ? capacities.Max() : 0
+            };
+
+            return new SuccessDataResult<VenueFilterOptionsDto>(options);
         }
 
         // Tək sarayın bütün detallarını (şəkillər, zallar+media+dolu günlər, menyular+tərkib) qaytarır
