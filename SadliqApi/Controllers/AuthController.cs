@@ -61,6 +61,26 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Parolu unudan istifadəçiyə sıfırlama linki göndərir (giriş tələb olunmur)
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            var result = await _authService.ForgotPasswordAsync(dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Linkdəki token ilə yeni parolu təyin edir
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var result = await _authService.ResetPasswordAsync(dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // İstifadəçi öz parolunu dəyişir
         [Authorize]
         [HttpPut]

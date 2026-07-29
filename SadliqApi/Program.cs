@@ -1,6 +1,7 @@
 using Business.Abstract;
 using Business.Concrete;
 using Business.Security.Jwt;
+using Business.Utilities.Email;
 using Core.Utilities.Security.Encryption;
 using DataAccess.Abstract;
 using DataAccess.Concrete;
@@ -66,6 +67,7 @@ builder.Services.AddScoped<IHallAvailabilityDal, EfHallAvailabilityDal>();
 builder.Services.AddScoped<IReservationDal, EfReservationDal>();
 builder.Services.AddScoped<IFavoriteDal, EfFavoriteDal>();
 builder.Services.AddScoped<IReviewDal, EfReviewDal>();
+builder.Services.AddScoped<IPasswordResetTokenDal, EfPasswordResetTokenDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -76,6 +78,10 @@ builder.Services.AddScoped<IMenuService, MenuManager>();
 builder.Services.AddScoped<IReservationService, ReservationManager>();
 builder.Services.AddScoped<IFavoriteService, FavoriteManager>();
 builder.Services.AddScoped<IReviewService, ReviewManager>();
+
+// E-poçt: SMTP konfiqurasiya olunmayıbsa məktublar log-a yazılır
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailOptions"));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 // appsettings.json-dan JWT parametrlərini oxu
 var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>()

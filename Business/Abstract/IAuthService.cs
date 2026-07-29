@@ -13,5 +13,9 @@ namespace Business.Abstract
         // Hesab idarəetməsi
         Task<IDataResult<User>> UpdateProfileAsync(int userId, UpdateProfileDto dto);
         Task<IResult> ChangePasswordAsync(int userId, ChangePasswordDto dto);
+
+        // Parolu unutmuş istifadəçi üçün sıfırlama axını
+        Task<IResult> ForgotPasswordAsync(ForgotPasswordDto dto);
+        Task<IResult> ResetPasswordAsync(ResetPasswordDto dto);
     }
 }

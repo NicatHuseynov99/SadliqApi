@@ -21,6 +21,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
+        public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -52,6 +53,10 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<Favorite>()
                 .HasIndex(f => new { f.UserId, f.VenueId })
                 .IsUnique();
+
+            // Token axtarışı hash üzrə gedir
+            b.Entity<PasswordResetToken>()
+                .HasIndex(t => t.TokenHash);
 
             // Rəy yazan istifadəçi silinsə, rəy qalsın (müəllif adı onsuz da saxlanılır)
             b.Entity<Review>()
