@@ -11,10 +11,12 @@ namespace Business.Concrete
     public class VenueManager : IVenueService
     {
         private readonly IVenueDal _venueDal;
+        private readonly IVenueAccessService _access;
 
-        public VenueManager(IVenueDal venueDal)
+        public VenueManager(IVenueDal venueDal, IVenueAccessService access)
         {
             _venueDal = venueDal;
+            _access = access;
         }
 
         // Yalnız admin tərəfindən təsdiqlənmiş sarayları bütün detalları ilə qaytarır.
@@ -182,7 +184,9 @@ namespace Business.Concrete
         // Owner-in özünə aid bütün sarayları (təsdiqli və ya təsdiqsiz) görməsi
         public async Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId)
         {
-            var query = await _venueDal.GetListAsync(v => v.OwnerId == ownerId);
+            // Sahib öz saraylarını, administrator isə təyin olunduğu sarayları görür
+            var venueIds = await _access.GetManagedVenueIdsAsync(ownerId);
+            var query = await _venueDal.GetListAsync(v => venueIds.Contains(v.Id));
             var venues = await query
                 .Include(v => v.Images)
                 .Include(v => v.Halls)

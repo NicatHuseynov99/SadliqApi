@@ -68,6 +68,7 @@ builder.Services.AddScoped<IReservationDal, EfReservationDal>();
 builder.Services.AddScoped<IFavoriteDal, EfFavoriteDal>();
 builder.Services.AddScoped<IReviewDal, EfReviewDal>();
 builder.Services.AddScoped<IPasswordResetTokenDal, EfPasswordResetTokenDal>();
+builder.Services.AddScoped<IVenueStaffDal, EfVenueStaffDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -78,6 +79,9 @@ builder.Services.AddScoped<IMenuService, MenuManager>();
 builder.Services.AddScoped<IReservationService, ReservationManager>();
 builder.Services.AddScoped<IFavoriteService, FavoriteManager>();
 builder.Services.AddScoped<IReviewService, ReviewManager>();
+builder.Services.AddScoped<IVenueAccessService, VenueAccessManager>();
+builder.Services.AddScoped<IVenueStaffService, VenueStaffManager>();
+builder.Services.AddScoped<IAdminService, AdminManager>();
 
 // E-poçt: SMTP konfiqurasiya olunmayıbsa məktublar log-a yazılır
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailOptions"));

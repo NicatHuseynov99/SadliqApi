@@ -14,19 +14,22 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IHallDal _hallDal;
         private readonly IMenuDal _menuDal;
+        private readonly IVenueAccessService _access;
 
         public ReservationManager(
             IReservationDal reservationDal,
             IHallAvailabilityDal availabilityDal,
             IVenueDal venueDal,
             IHallDal hallDal,
-            IMenuDal menuDal)
+            IMenuDal menuDal,
+            IVenueAccessService access)
         {
             _reservationDal = reservationDal;
             _availabilityDal = availabilityDal;
             _venueDal = venueDal;
             _hallDal = hallDal;
             _menuDal = menuDal;
+            _access = access;
         }
 
         // Zal + gün + menyu seçib rezerv sorğusu göndərir.
@@ -121,11 +124,10 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Reservation>>(list);
         }
 
-        // Restoran sahibinin öz sarayına gələn rezerv sorğularını görməsi
+        // Sarayın rezerv sorğuları — sahib və ya həmin saraya təyin olunmuş administrator görə bilər
         public async Task<IDataResult<List<Reservation>>> GetByVenueAsync(int venueId, int ownerId)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == venueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageAsync(venueId, ownerId))
                 return new ErrorDataResult<List<Reservation>>("Bu saray sizə aid deyil.");
 
             var query = await _reservationDal.GetListAsync(r => r.VenueId == venueId);
@@ -138,6 +140,23 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Reservation>>(list);
         }
 
+        // İdarə edilən bütün sarayların rezervləri bir sorğu ilə (panel üçün).
+        // Sahib öz saraylarını, administrator isə yalnız təyin olunduğu sarayları görür.
+        public async Task<IDataResult<List<Reservation>>> GetByOwnerAsync(int ownerId)
+        {
+            var venueIds = await _access.GetManagedVenueIdsAsync(ownerId);
+
+            var query = await _reservationDal.GetListAsync(r => venueIds.Contains(r.VenueId));
+            var list = await query
+                .Include(r => r.Customer)
+                .Include(r => r.Hall)
+                .Include(r => r.Menu)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return new SuccessDataResult<List<Reservation>>(list);
+        }
+
         // Owner rezervi təsdiq/rədd edir; təsdiq olunanda gün "Booked", rədd olunanda yenidən "Available" olur
         public async Task<IResult> UpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto, int ownerId)
         {
@@ -145,8 +164,7 @@ namespace Business.Concrete
             if (reservation is null)
                 return new ErrorResult("Rezerv tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageAsync(reservation.VenueId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
             reservation.Status = dto.Status;

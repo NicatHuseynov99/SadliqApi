@@ -51,8 +51,8 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Owner-in özünə aid bütün sarayları (təsdiqli və ya təsdiqsiz) görməsi
-        [Authorize(Roles = "Owner")]
+        // İdarə edilən saraylar: sahib öz saraylarını, administrator təyin olunduqlarını görür
+        [Authorize(Roles = "Owner,VenueAdmin")]
         [HttpGet]
         public async Task<IActionResult> GetMine()
         {
@@ -96,7 +96,7 @@ namespace SadliqApi.Controllers
         }
 
         // Admin: təsdiq gözləyən sarayların siyahısı
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin")]
         [HttpGet]
         public async Task<IActionResult> GetPending()
         {
@@ -105,7 +105,7 @@ namespace SadliqApi.Controllers
         }
 
         // Admin: sarayı təsdiqləyir, bundan sonra ictimai siyahıda görünür
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "SuperAdmin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Approve(int id)
         {

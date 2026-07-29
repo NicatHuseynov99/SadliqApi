@@ -40,8 +40,8 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Restoran sahibinin öz sarayına gələn rezerv sorğularını görməsi
-        [Authorize(Roles = "Owner")]
+        // Sarayın rezerv sorğuları — sahib və ya həmin sarayın administratoru
+        [Authorize(Roles = "Owner,VenueAdmin")]
         [HttpGet("{venueId}")]
         public async Task<IActionResult> GetByVenue(int venueId)
         {
@@ -52,8 +52,18 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Restoran sahibinin rezervi təsdiq/rədd etməsi (Status: 0=Pending, 1=Confirmed, 2=Rejected, 3=Cancelled)
-        [Authorize(Roles = "Owner")]
+        // İdarə edilən bütün sarayların rezervləri — panel tək sorğu ilə dolur
+        [Authorize(Roles = "Owner,VenueAdmin")]
+        [HttpGet]
+        public async Task<IActionResult> GetForOwner()
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.GetByOwnerAsync(ownerId);
+            return Ok(result);
+        }
+
+        // Rezervin təsdiqi/rəddi — sahib və ya sarayın administratoru (Status: 0=Pending, 1=Confirmed, 2=Rejected, 3=Cancelled)
+        [Authorize(Roles = "Owner,VenueAdmin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateReservationStatusDto dto)
         {

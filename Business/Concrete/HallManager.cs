@@ -12,12 +12,18 @@ namespace Business.Concrete
         private readonly IHallDal _hallDal;
         private readonly IVenueDal _venueDal;
         private readonly IHallAvailabilityDal _availabilityDal;
+        private readonly IVenueAccessService _access;
 
-        public HallManager(IHallDal hallDal, IVenueDal venueDal, IHallAvailabilityDal availabilityDal)
+        public HallManager(
+            IHallDal hallDal,
+            IVenueDal venueDal,
+            IHallAvailabilityDal availabilityDal,
+            IVenueAccessService access)
         {
             _hallDal = hallDal;
             _venueDal = venueDal;
             _availabilityDal = availabilityDal;
+            _access = access;
         }
 
         // Sarayın bütün zallarını, şəkil/video və dolu-gün cədvəli ilə birgə qaytarır
@@ -118,15 +124,14 @@ namespace Business.Concrete
             return new SuccessDataResult<List<HallAvailability>>(list);
         }
 
-        // Restoran sahibinin bir günü əl ilə dolu/boş/tutulu (Available/Booked/Held) etməsi
+        // Bir günü əl ilə dolu/boş/tutulu etmək — sahib və ya sarayın administratoru edə bilər
         public async Task<IResult> SetAvailabilityAsync(int hallId, SetAvailabilityDto dto, int ownerId)
         {
             var hall = await _hallDal.GetAsync(h => h.Id == hallId);
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == hall.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageAsync(hall.VenueId, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             var day = await _availabilityDal.GetAsync(a => a.HallId == hallId && a.Date == dto.Date);

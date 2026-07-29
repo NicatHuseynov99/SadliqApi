@@ -22,6 +22,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+        public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -52,6 +53,11 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             // Eyni istifadəçi eyni sarayı iki dəfə seçilmişlərə əlavə edə bilməz
             b.Entity<Favorite>()
                 .HasIndex(f => new { f.UserId, f.VenueId })
+                .IsUnique();
+
+            // Eyni istifadəçi eyni saraya iki dəfə təyin edilə bilməz
+            b.Entity<VenueStaff>()
+                .HasIndex(s => new { s.VenueId, s.UserId })
                 .IsUnique();
 
             // Token axtarışı hash üzrə gedir

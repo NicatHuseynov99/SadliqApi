@@ -47,8 +47,10 @@ namespace Business.Concrete
 
             HashingHelper.CreatePasswordHash(dto.Password, out var passwordHash, out var passwordSalt);
 
-            // Admin rolu API ilə açılmır — yalnız Customer/Owner seçilə bilər
-            if (!Enum.TryParse<UserRole>(dto.Role, true, out var role) || role == UserRole.Admin)
+            // Açıq qeydiyyatla yalnız Customer və Owner seçilə bilər.
+            // SuperAdmin bazadan, VenueAdmin isə saray rəhbərliyi tərəfindən təyin olunur.
+            if (!Enum.TryParse<UserRole>(dto.Role, true, out var role) ||
+                role is UserRole.SuperAdmin or UserRole.VenueAdmin)
                 role = UserRole.Customer;
 
             var user = new User

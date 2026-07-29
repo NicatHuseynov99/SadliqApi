@@ -79,8 +79,8 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Restoran sahibinin bir günü əl ilə dolu/boş/tutulu etməsi
-        [Authorize(Roles = "Owner")]
+        // Bir günü əl ilə dolu/boş/tutulu etmək — sahib və ya sarayın administratoru
+        [Authorize(Roles = "Owner,VenueAdmin")]
         [HttpPut("{hallId}")]
         public async Task<IActionResult> SetAvailability(int hallId, [FromBody] SetAvailabilityDto dto)
         {
