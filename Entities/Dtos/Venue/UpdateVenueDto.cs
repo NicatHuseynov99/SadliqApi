@@ -9,5 +9,11 @@ namespace Entities.Dtos.Venue
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public string Phone { get; set; } = string.Empty;
+
+        // Media yükləmə hazır olana qədər şəkil linklə verilir
+        public string? CoverImageUrl { get; set; }
+
+        // Göndərilən siyahı sarayın özəlliklərini tam əvəz edir
+        public List<string>? Features { get; set; }
     }
 }

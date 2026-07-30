@@ -56,19 +56,21 @@ namespace Business.Concrete
                 VenueId = dto.VenueId,
                 Name = dto.Name,
                 PricePerPerson = dto.PricePerPerson,
-                Description = dto.Description
+                Description = dto.Description,
+                ImageUrl = dto.ImageUrl
             };
 
             await _menuDal.AddAsync(menu);
 
-            foreach (var item in dto.Items)
+            foreach (var item in dto.Items.Where(i => !string.IsNullOrWhiteSpace(i.Name)))
             {
                 await _menuItemDal.AddAsync(new MenuItem
                 {
                     MenuId = menu.Id,
                     Name = item.Name,
                     Category = item.Category,
-                    Description = item.Description
+                    Description = item.Description,
+                    ImageUrl = item.ImageUrl
                 });
             }
 
@@ -89,6 +91,9 @@ namespace Business.Concrete
             menu.Name = dto.Name;
             menu.PricePerPerson = dto.PricePerPerson;
             menu.Description = dto.Description;
+
+            if (dto.ImageUrl is not null)
+                menu.ImageUrl = dto.ImageUrl;
 
             await _menuDal.UpdateAsync(menu);
             return new SuccessResult("Menyu yeniləndi.");

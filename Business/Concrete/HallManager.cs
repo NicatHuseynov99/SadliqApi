@@ -13,17 +13,20 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IHallAvailabilityDal _availabilityDal;
         private readonly IVenueAccessService _access;
+        private readonly IHallMediaDal _mediaDal;
 
         public HallManager(
             IHallDal hallDal,
             IVenueDal venueDal,
             IHallAvailabilityDal availabilityDal,
-            IVenueAccessService access)
+            IVenueAccessService access,
+            IHallMediaDal mediaDal)
         {
             _hallDal = hallDal;
             _venueDal = venueDal;
             _availabilityDal = availabilityDal;
             _access = access;
+            _mediaDal = mediaDal;
         }
 
         // Sarayın bütün zallarını, şəkil/video və dolu-gün cədvəli ilə birgə qaytarır
@@ -68,6 +71,10 @@ namespace Business.Concrete
                 MinPrice = dto.MinPrice
             };
 
+            // Şəkil verilibsə zalın media siyahısına yazılır
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+                hall.Media.Add(new HallMedia { Url = dto.ImageUrl, MediaType = MediaType.Image, SortOrder = 0 });
+
             await _hallDal.AddAsync(hall);
             return new SuccessDataResult<Hall>(hall, "Zal əlavə olundu.");
         }
@@ -76,6 +83,7 @@ namespace Business.Concrete
         public async Task<IResult> UpdateAsync(int id, UpdateHallDto dto, int ownerId)
         {
             var hall = await _hallDal.GetAsync(h => h.Id == id);
+
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
@@ -89,6 +97,27 @@ namespace Business.Concrete
             hall.MinPrice = dto.MinPrice;
 
             await _hallDal.UpdateAsync(hall);
+
+            // Şəkil göndərilibsə mövcud əsas şəkli yeniləyir, yoxdursa əlavə edir
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            {
+                var mediaQuery = await _mediaDal.GetListAsync(m => m.HallId == id);
+                var cover = await mediaQuery.OrderBy(m => m.SortOrder).FirstOrDefaultAsync();
+
+                if (cover is null)
+                    await _mediaDal.AddAsync(new HallMedia
+                    {
+                        HallId = id,
+                        Url = dto.ImageUrl,
+                        MediaType = MediaType.Image,
+                        SortOrder = 0
+                    });
+                else if (cover.Url != dto.ImageUrl)
+                {
+                    cover.Url = dto.ImageUrl;
+                    await _mediaDal.UpdateAsync(cover);
+                }
+            }
             return new SuccessResult("Zal yeniləndi.");
         }
 

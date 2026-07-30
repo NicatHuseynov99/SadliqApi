@@ -69,6 +69,7 @@ builder.Services.AddScoped<IFavoriteDal, EfFavoriteDal>();
 builder.Services.AddScoped<IReviewDal, EfReviewDal>();
 builder.Services.AddScoped<IPasswordResetTokenDal, EfPasswordResetTokenDal>();
 builder.Services.AddScoped<IVenueStaffDal, EfVenueStaffDal>();
+builder.Services.AddScoped<IVenueFeatureDal, EfVenueFeatureDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();

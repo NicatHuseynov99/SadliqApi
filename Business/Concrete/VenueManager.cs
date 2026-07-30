@@ -12,11 +12,19 @@ namespace Business.Concrete
     {
         private readonly IVenueDal _venueDal;
         private readonly IVenueAccessService _access;
+        private readonly IVenueFeatureDal _featureDal;
+        private readonly IVenueImageDal _imageDal;
 
-        public VenueManager(IVenueDal venueDal, IVenueAccessService access)
+        public VenueManager(
+            IVenueDal venueDal,
+            IVenueAccessService access,
+            IVenueFeatureDal featureDal,
+            IVenueImageDal imageDal)
         {
             _venueDal = venueDal;
             _access = access;
+            _featureDal = featureDal;
+            _imageDal = imageDal;
         }
 
         // Yalnız admin tərəfindən təsdiqlənmiş sarayları bütün detalları ilə qaytarır.
@@ -210,9 +218,18 @@ namespace Business.Concrete
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 Phone = dto.Phone,
+                CoverImageUrl = dto.CoverImageUrl,
                 IsApproved = true,
                 CreatedAt = DateTime.UtcNow
             };
+
+            // Özəlliklər sarayla birlikdə yazılır
+            foreach (var name in (dto.Features ?? new List<string>()).Where(f => !string.IsNullOrWhiteSpace(f)))
+                venue.Features.Add(new VenueFeature { Name = name.Trim() });
+
+            // Kapak şəkli qalereyaya da düşür ki, detal səhifəsində görünsün
+            if (!string.IsNullOrWhiteSpace(dto.CoverImageUrl))
+                venue.Images.Add(new VenueImage { Url = dto.CoverImageUrl, IsCover = true, SortOrder = 0 });
 
             await _venueDal.AddAsync(venue);
             return new SuccessDataResult<Venue>(venue, "Saray əlavə olundu.");
@@ -222,6 +239,7 @@ namespace Business.Concrete
         public async Task<IResult> UpdateAsync(int id, UpdateVenueDto dto, int ownerId)
         {
             var venue = await _venueDal.GetAsync(v => v.Id == id && v.OwnerId == ownerId);
+
             if (venue is null)
                 return new ErrorResult("Saray tapılmadı və ya sizə aid deyil.");
 
@@ -233,7 +251,42 @@ namespace Business.Concrete
             venue.Longitude = dto.Longitude;
             venue.Phone = dto.Phone;
 
+            if (dto.CoverImageUrl is not null)
+                venue.CoverImageUrl = dto.CoverImageUrl;
+
             await _venueDal.UpdateAsync(venue);
+
+            // Özəlliklər siyahısı göndərilibsə, köhnələr silinib yenisi yazılır
+            if (dto.Features is not null)
+            {
+                var oldQuery = await _featureDal.GetListAsync(f => f.VenueId == id);
+                foreach (var old in await oldQuery.ToListAsync())
+                    await _featureDal.DeleteAsync(old);
+
+                foreach (var name in dto.Features.Where(f => !string.IsNullOrWhiteSpace(f)))
+                    await _featureDal.AddAsync(new VenueFeature { VenueId = id, Name = name.Trim() });
+            }
+
+            // Kapak şəkli dəyişibsə qalereyadakı əsas şəkil də yenilənir
+            if (!string.IsNullOrWhiteSpace(dto.CoverImageUrl))
+            {
+                var cover = await _imageDal.GetAsync(i => i.VenueId == id && i.IsCover);
+
+                if (cover is null)
+                    await _imageDal.AddAsync(new VenueImage
+                    {
+                        VenueId = id,
+                        Url = dto.CoverImageUrl,
+                        IsCover = true,
+                        SortOrder = 0
+                    });
+                else if (cover.Url != dto.CoverImageUrl)
+                {
+                    cover.Url = dto.CoverImageUrl;
+                    await _imageDal.UpdateAsync(cover);
+                }
+            }
+
             return new SuccessResult("Saray yeniləndi.");
         }
 

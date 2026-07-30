@@ -16,10 +16,12 @@ namespace Core.DataAccess.EntityFramework
             _context = context;
         }
 
-        // Adds a new entity and saves changes to the database
+        // Adds a new entity and saves changes to the database.
+        // Add() marks the whole object graph, so child collections (features, images,
+        // menu items) are inserted together with the parent.
         public async Task AddAsync(TEntity entity)
         {
-            _context.Entry(entity).State = EntityState.Added;
+            await _context.Set<TEntity>().AddAsync(entity);
             await _context.SaveChangesAsync();
         }
 

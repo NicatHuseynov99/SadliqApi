@@ -5,5 +5,6 @@ namespace Entities.Dtos.Menu
         public string Name { get; set; } = string.Empty;
         public decimal PricePerPerson { get; set; }
         public string Description { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
     }
 }
