@@ -14,17 +14,23 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IUserDal _userDal;
         private readonly IVenueAccessService _access;
+        private readonly IVenueStaffHallDal _staffHallDal;
+        private readonly IHallDal _hallDal;
 
         public VenueStaffManager(
             IVenueStaffDal staffDal,
             IVenueDal venueDal,
             IUserDal userDal,
-            IVenueAccessService access)
+            IVenueAccessService access,
+            IVenueStaffHallDal staffHallDal,
+            IHallDal hallDal)
         {
             _staffDal = staffDal;
             _venueDal = venueDal;
             _userDal = userDal;
             _access = access;
+            _staffHallDal = staffHallDal;
+            _hallDal = hallDal;
         }
 
         // Sahibin saraylarına təyin olunmuş bütün administratorlar
@@ -37,7 +43,10 @@ namespace Business.Concrete
             var venueIds = venues.Select(v => v.Id).ToList();
 
             var staffQuery = await _staffDal.GetListAsync(s => venueIds.Contains(s.VenueId));
-            var staffList = await staffQuery.Include(s => s.User).ToListAsync();
+            var staffList = await staffQuery
+                .Include(s => s.User)
+                .Include(s => s.Halls).ThenInclude(h => h.Hall)
+                .ToListAsync();
 
             var result = staffList.Select(s => new VenueStaffDto
             {
@@ -49,7 +58,9 @@ namespace Business.Concrete
                 Email = s.User?.Email ?? string.Empty,
                 Phone = s.User?.Phone ?? string.Empty,
                 IsActive = s.IsActive,
-                CreatedAt = s.CreatedAt
+                CreatedAt = s.CreatedAt,
+                HallIds = s.Halls.Select(h => h.HallId).ToList(),
+                HallNames = s.Halls.Select(h => h.Hall?.Name ?? string.Empty).ToList()
             }).ToList();
 
             return new SuccessDataResult<List<VenueStaffDto>>(result);
@@ -120,6 +131,10 @@ namespace Business.Concrete
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Seçilmiş zallar təyinatla birlikdə yazılır (boşdursa bütün zallar deməkdir)
+            foreach (var hallId in await FilterVenueHallsAsync(dto.VenueId, dto.HallIds))
+                staff.Halls.Add(new VenueStaffHall { HallId = hallId });
+
             await _staffDal.AddAsync(staff);
 
             return new SuccessDataResult<VenueStaffDto>(new VenueStaffDto
@@ -159,6 +174,40 @@ namespace Business.Concrete
             await _userDal.UpdateAsync(user);
 
             return new SuccessResult("Administratorun məlumatları yeniləndi.");
+        }
+
+        // Administratorun işləyə biləcəyi zalları yenidən təyin edir
+        public async Task<IResult> SetHallsAsync(int staffId, SetStaffHallsDto dto, int ownerId)
+        {
+            var staff = await _staffDal.GetAsync(s => s.Id == staffId);
+            if (staff is null)
+                return new ErrorResult("Administrator tapılmadı.");
+
+            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+                return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
+
+            // Köhnə təyinatlar silinir
+            var oldQuery = await _staffHallDal.GetListAsync(h => h.VenueStaffId == staffId);
+            foreach (var old in await oldQuery.ToListAsync())
+                await _staffHallDal.DeleteAsync(old);
+
+            var hallIds = await FilterVenueHallsAsync(staff.VenueId, dto.HallIds);
+            foreach (var hallId in hallIds)
+                await _staffHallDal.AddAsync(new VenueStaffHall { VenueStaffId = staffId, HallId = hallId });
+
+            return new SuccessResult(hallIds.Count == 0
+                ? "Administrator sarayın bütün zallarında işləyə bilər."
+                : $"{hallIds.Count} zal təyin olundu.");
+        }
+
+        // Yalnız həmin saraya aid olan zal Id-lərini saxlayır — başqa sarayın zalı verilə bilməz
+        private async Task<List<int>> FilterVenueHallsAsync(int venueId, List<int>? hallIds)
+        {
+            if (hallIds is null || hallIds.Count == 0)
+                return new List<int>();
+
+            var query = await _hallDal.GetListAsync(h => h.VenueId == venueId && hallIds.Contains(h.Id));
+            return await query.Select(h => h.Id).ToListAsync();
         }
 
         // Təyinatı silir. Hesabın özü qalır, çünki onun təsdiqlədiyi rezervlər tarixçədədir

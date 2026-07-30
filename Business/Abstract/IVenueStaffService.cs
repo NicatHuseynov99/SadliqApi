@@ -20,6 +20,9 @@ namespace Business.Abstract
         // Təyinatı tamamilə silir (hesabın özü qalır)
         Task<IResult> DeleteAsync(int staffId, int ownerId);
 
+        // Administratorun işləyə biləcəyi zalları təyin edir
+        Task<IResult> SetHallsAsync(int staffId, SetStaffHallsDto dto, int ownerId);
+
         // Administratorun parolunu sıfırlayır
         Task<IResult> ResetPasswordAsync(int staffId, ResetStaffPasswordDto dto, int ownerId);
     }

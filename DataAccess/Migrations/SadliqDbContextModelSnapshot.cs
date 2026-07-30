@@ -501,6 +501,30 @@ namespace DataAccess.Migrations
                     b.ToTable("VenueStaff");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.VenueStaffHall", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("HallId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VenueStaffId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HallId");
+
+                    b.HasIndex("VenueStaffId", "HallId")
+                        .IsUnique();
+
+                    b.ToTable("VenueStaffHalls");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Favorite", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -680,6 +704,25 @@ namespace DataAccess.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.VenueStaffHall", b =>
+                {
+                    b.HasOne("Entities.Concrete.Hall", "Hall")
+                        .WithMany()
+                        .HasForeignKey("HallId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.VenueStaff", "VenueStaff")
+                        .WithMany("Halls")
+                        .HasForeignKey("VenueStaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hall");
+
+                    b.Navigation("VenueStaff");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Hall", b =>
                 {
                     b.Navigation("Availability");
@@ -703,6 +746,11 @@ namespace DataAccess.Migrations
                     b.Navigation("Menus");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueStaff", b =>
+                {
+                    b.Navigation("Halls");
                 });
 #pragma warning restore 612, 618
         }

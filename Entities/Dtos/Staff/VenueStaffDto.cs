@@ -14,5 +14,9 @@ namespace Entities.Dtos.Staff
 
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Boşdursa administrator sarayın bütün zallarına baxa bilir
+        public List<int> HallIds { get; set; } = new();
+        public List<string> HallNames { get; set; } = new();
     }
 }

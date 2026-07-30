@@ -19,5 +19,8 @@ namespace Entities.Concrete
         // Silmək əvəzinə deaktiv edilir ki, kimin nəyi təsdiqlədiyi tarixçədə qalsın
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Boşdursa sarayın bütün zalları, doludursa yalnız seçilmiş zallar
+        public ICollection<VenueStaffHall> Halls { get; set; } = new List<VenueStaffHall>();
     }
 }

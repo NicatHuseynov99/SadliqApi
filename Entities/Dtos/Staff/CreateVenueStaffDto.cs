@@ -9,5 +9,8 @@ namespace Entities.Dtos.Staff
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+
+        // Boş buraxılarsa administrator sarayın bütün zallarında işləyə bilir
+        public List<int>? HallIds { get; set; }
     }
 }

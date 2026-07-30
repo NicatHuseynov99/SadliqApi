@@ -195,7 +195,13 @@ namespace Business.Concrete
             if (!await _access.CanManageAsync(venueId, ownerId))
                 return new ErrorDataResult<List<Reservation>>("Bu saray sizə aid deyil.");
 
+            var allowedHalls = await _access.GetAllowedHallIdsAsync(ownerId);
+
             var query = await _reservationDal.GetListAsync(r => r.VenueId == venueId);
+
+            if (allowedHalls is not null)
+                query = query.Where(r => allowedHalls.Contains(r.HallId));
+
             var list = await query
                 .Include(r => r.Customer)
                 .Include(r => r.Hall)
@@ -210,8 +216,14 @@ namespace Business.Concrete
         public async Task<IDataResult<List<Reservation>>> GetByOwnerAsync(int ownerId)
         {
             var venueIds = await _access.GetManagedVenueIdsAsync(ownerId);
+            var allowedHalls = await _access.GetAllowedHallIdsAsync(ownerId);
 
             var query = await _reservationDal.GetListAsync(r => venueIds.Contains(r.VenueId));
+
+            // Administratora yalnız icazəli zalların sorğuları göstərilir
+            if (allowedHalls is not null)
+                query = query.Where(r => allowedHalls.Contains(r.HallId));
+
             var list = await query
                 .Include(r => r.Customer)
                 .Include(r => r.Hall)
@@ -229,7 +241,8 @@ namespace Business.Concrete
             if (reservation is null)
                 return new ErrorResult("Rezerv tapılmadı.");
 
-            if (!await _access.CanManageAsync(reservation.VenueId, ownerId))
+            // Zal səviyyəsində yoxlama: administrator yalnız öz zallarının sorğularına cavab verir
+            if (!await _access.CanManageHallAsync(reservation.HallId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
             reservation.Status = dto.Status;

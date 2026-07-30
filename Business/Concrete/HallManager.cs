@@ -160,7 +160,7 @@ namespace Business.Concrete
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            if (!await _access.CanManageAsync(hall.VenueId, ownerId))
+            if (!await _access.CanManageHallAsync(hallId, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             var day = await _availabilityDal.GetAsync(a => a.HallId == hallId && a.Date == dto.Date);

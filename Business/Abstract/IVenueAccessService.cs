@@ -12,5 +12,11 @@ namespace Business.Abstract
 
         // İstifadəçinin idarə edə bildiyi bütün sarayların Id-ləri (sahib olduqları + təyinatları)
         Task<List<int>> GetManagedVenueIdsAsync(int userId);
+
+        // Konkret zalda iş görə bilirmi (administratora yalnız seçilmiş zallar verilir)
+        Task<bool> CanManageHallAsync(int hallId, int userId);
+
+        // Administratorun icazəli zalları. null qayıdarsa məhdudiyyət yoxdur (sahib/dəstək)
+        Task<List<int>?> GetAllowedHallIdsAsync(int userId);
     }
 }

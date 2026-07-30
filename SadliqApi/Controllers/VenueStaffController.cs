@@ -49,6 +49,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Administratorun işləyə biləcəyi zalları təyin edir (boş siyahı = bütün zallar)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> SetHalls(int id, [FromBody] SetStaffHallsDto dto)
+        {
+            var result = await _staffService.SetHallsAsync(id, dto, CurrentUserId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // Təyinatı siyahıdan silir
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

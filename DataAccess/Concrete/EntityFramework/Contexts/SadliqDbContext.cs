@@ -23,6 +23,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
+        public DbSet<VenueStaffHall> VenueStaffHalls => Set<VenueStaffHall>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -59,6 +60,17 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<VenueStaff>()
                 .HasIndex(s => new { s.VenueId, s.UserId })
                 .IsUnique();
+
+            // Eyni zal eyni administratora iki dəfə verilə bilməz
+            b.Entity<VenueStaffHall>()
+                .HasIndex(h => new { h.VenueStaffId, h.HallId })
+                .IsUnique();
+
+            // Zal silinsə, administratorun həmin zala təyinatı da silinir
+            b.Entity<VenueStaffHall>()
+                .HasOne(h => h.Hall).WithMany()
+                .HasForeignKey(h => h.HallId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Token axtarışı hash üzrə gedir
             b.Entity<PasswordResetToken>()
