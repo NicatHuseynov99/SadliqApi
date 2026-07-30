@@ -23,14 +23,17 @@ namespace Business.Concrete
         private readonly IPasswordResetTokenDal _resetTokenDal;
         private readonly IEmailService _emailService;
         private readonly EmailOptions _emailOptions;
+        private readonly IAuditContext _audit;
 
         public AuthManager(
             IUserDal userDal,
             ITokenHelper tokenHelper,
             IPasswordResetTokenDal resetTokenDal,
             IEmailService emailService,
-            IOptions<EmailOptions> emailOptions)
+            IOptions<EmailOptions> emailOptions,
+            IAuditContext audit)
         {
+            _audit = audit;
             _userDal = userDal;
             _tokenHelper = tokenHelper;
             _resetTokenDal = resetTokenDal;
@@ -66,6 +69,11 @@ namespace Business.Concrete
             };
 
             await _userDal.AddAsync(user);
+
+            _audit.SetActor(user.Id, user.FullName, (int)user.Role);
+            _audit.Set("UserRegistered",
+                $"{user.FullName} «{RoleName(user.Role)}» kimi qeydiyyatdan keçdi", "User", user.Id);
+
             return new SuccessResult("Qeydiyyat uğurludur.");
         }
 
@@ -78,6 +86,10 @@ namespace Business.Concrete
 
             if (!HashingHelper.VerifyPasswordHash(dto.Password, user.PasswordHash, user.PasswordSalt))
                 return new ErrorDataResult<TokenResponseDto>("Parol yanlışdır.");
+
+            // Jurnalda "Qonaq" yox, real istifadəçi görünsün
+            _audit.SetActor(user.Id, user.FullName, (int)user.Role);
+            _audit.Set("UserLoggedIn", $"{user.FullName} sistemə daxil oldu", "User", user.Id);
 
             var token = _tokenHelper.CreateToken(user);
 
@@ -233,6 +245,17 @@ namespace Business.Concrete
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
             return Convert.ToHexString(bytes);
         }
+
+        // Jurnal mətnlərində rolların Azərbaycanca adı
+        private static string RoleName(UserRole role) => role switch
+        {
+            UserRole.Customer => "Müştəri",
+            UserRole.Owner => "Saray rəhbərliyi",
+            UserRole.VenueAdmin => "Saray administratoru",
+            UserRole.Support => "Dəstək admini",
+            UserRole.SuperAdmin => "Platforma sahibi",
+            _ => role.ToString()
+        };
 
         private static string BuildResetEmail(string firstName, string link) => $@"
             <div style='font-family:Segoe UI,Arial,sans-serif;color:#1a1118'>

@@ -17,6 +17,7 @@ namespace Business.Concrete
         private readonly IVenueAccessService _access;
         private readonly IUserDal _userDal;
         private readonly IEmailService _emailService;
+        private readonly IAuditContext _audit;
 
         public ReservationManager(
             IReservationDal reservationDal,
@@ -26,8 +27,10 @@ namespace Business.Concrete
             IMenuDal menuDal,
             IVenueAccessService access,
             IUserDal userDal,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuditContext audit)
         {
+            _audit = audit;
             _reservationDal = reservationDal;
             _availabilityDal = availabilityDal;
             _venueDal = venueDal;
@@ -116,6 +119,11 @@ namespace Business.Concrete
 
             // Saray sahibinə yeni sorğu barədə xəbər verilir (e-poçt konfiqurasiya olunmayıbsa log-a düşür)
             await NotifyOwnerAsync(venue, hall, menu, reservation);
+
+            _audit.Set(
+                "ReservationCreated",
+                $"«{venue.Name}» sarayının «{hall.Name}» zalına {dto.EventDate:dd.MM.yyyy} tarixi üçün {dto.GuestCount} qonaqlıq rezerv sorğusu göndərdi",
+                "Reservation", reservation.Id, venue.Id);
 
             return new SuccessDataResult<Reservation>(reservation, "Rezerv sorğusu göndərildi.");
         }
@@ -264,6 +272,21 @@ namespace Business.Concrete
 
             // Müştəriyə nəticə barədə xəbər verilir
             await NotifyCustomerAsync(reservation, dto.Status);
+
+            // Jurnal üçün dəqiq izah
+            var venueName = (await _venueDal.GetAsync(v => v.Id == reservation.VenueId))?.Name ?? "saray";
+            var statusText = dto.Status switch
+            {
+                ReservationStatus.Confirmed => "təsdiqlədi",
+                ReservationStatus.Rejected => "rədd etdi",
+                ReservationStatus.Cancelled => "ləğv etdi",
+                _ => "gözləmə vəziyyətinə qaytardı"
+            };
+
+            _audit.Set(
+                "ReservationStatusChanged",
+                $"«{venueName}» üçün {reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu {statusText}",
+                "Reservation", reservation.Id, reservation.VenueId);
 
             return new SuccessResult("Status yeniləndi.");
         }

@@ -13,13 +13,16 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IReservationDal _reservationDal;
         private readonly IReviewDal _reviewDal;
+        private readonly IAuditContext _audit;
 
         public AdminManager(
             IUserDal userDal,
             IVenueDal venueDal,
             IReservationDal reservationDal,
-            IReviewDal reviewDal)
+            IReviewDal reviewDal,
+            IAuditContext audit)
         {
+            _audit = audit;
             _userDal = userDal;
             _venueDal = venueDal;
             _reservationDal = reservationDal;
@@ -79,6 +82,17 @@ namespace Business.Concrete
             return new SuccessDataResult<List<AdminUserDto>>(result);
         }
 
+        // Rolların Azərbaycanca adları — jurnal mətnlərində işlənir
+        private static string RoleName(UserRole role) => role switch
+        {
+            UserRole.Customer => "Müştəri",
+            UserRole.Owner => "Saray rəhbərliyi",
+            UserRole.VenueAdmin => "Saray administratoru",
+            UserRole.Support => "Dəstək admini",
+            UserRole.SuperAdmin => "Platforma sahibi",
+            _ => role.ToString()
+        };
+
         // Rol dəyişikliyi. Admin öz rolunu aşağı sala bilməz — sistemdə adminsiz qalma riski var
         public async Task<IResult> ChangeRoleAsync(int userId, ChangeRoleDto dto, int currentAdminId)
         {
@@ -92,8 +106,13 @@ namespace Business.Concrete
             if (user is null)
                 return new ErrorResult("İstifadəçi tapılmadı.");
 
+            var oldRole = user.Role;
             user.Role = role;
             await _userDal.UpdateAsync(user);
+
+            _audit.Set("UserRoleChanged",
+                $"{user.FullName} istifadəçisinin rolunu «{RoleName(oldRole)}» → «{RoleName(role)}» dəyişdi",
+                "User", user.Id);
 
             return new SuccessResult($"{user.FullName} üçün rol dəyişdirildi: {role}");
         }

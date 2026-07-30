@@ -14,13 +14,16 @@ namespace Business.Concrete
         private readonly IVenueAccessService _access;
         private readonly IVenueFeatureDal _featureDal;
         private readonly IVenueImageDal _imageDal;
+        private readonly IAuditContext _audit;
 
         public VenueManager(
             IVenueDal venueDal,
             IVenueAccessService access,
             IVenueFeatureDal featureDal,
-            IVenueImageDal imageDal)
+            IVenueImageDal imageDal,
+            IAuditContext audit)
         {
+            _audit = audit;
             _venueDal = venueDal;
             _access = access;
             _featureDal = featureDal;
@@ -232,6 +235,10 @@ namespace Business.Concrete
                 venue.Images.Add(new VenueImage { Url = dto.CoverImageUrl, IsCover = true, SortOrder = 0 });
 
             await _venueDal.AddAsync(venue);
+
+            _audit.Set("VenueCreated", $"«{venue.Name}» sarayını əlavə etdi ({venue.City})",
+                "Venue", venue.Id, venue.Id);
+
             return new SuccessDataResult<Venue>(venue, "Saray əlavə olundu.");
         }
 
@@ -287,6 +294,9 @@ namespace Business.Concrete
                 }
             }
 
+            _audit.Set("VenueUpdated", $"«{venue.Name}» sarayının məlumatlarını yenilədi",
+                "Venue", venue.Id, venue.Id);
+
             return new SuccessResult("Saray yeniləndi.");
         }
 
@@ -296,6 +306,8 @@ namespace Business.Concrete
             var venue = await _venueDal.GetAsync(v => v.Id == id && v.OwnerId == ownerId);
             if (venue is null)
                 return new ErrorResult("Saray tapılmadı və ya sizə aid deyil.");
+
+            _audit.Set("VenueDeleted", $"«{venue.Name}» sarayını sildi", "Venue", venue.Id, venue.Id);
 
             await _venueDal.DeleteAsync(venue);
             return new SuccessResult("Saray silindi.");

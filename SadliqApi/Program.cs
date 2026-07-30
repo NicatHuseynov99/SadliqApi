@@ -2,6 +2,7 @@ using Business.Abstract;
 using Business.Concrete;
 using Business.Security.Jwt;
 using Business.Utilities.Email;
+using SadliqApi.Audit;
 using Core.Utilities.Security.Encryption;
 using DataAccess.Abstract;
 using DataAccess.Concrete;
@@ -14,7 +15,11 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // EF entity-lərində qarşılıqlı (iki tərəfli) referanslar olduğu üçün JSON-da dövr yaranmasının qarşısını alır
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Hər sorğu fəaliyyət jurnalına düşür (oxuma sorğularının bir hissəsi istisna olmaqla)
+        options.Filters.Add<AuditActionFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -71,6 +76,7 @@ builder.Services.AddScoped<IPasswordResetTokenDal, EfPasswordResetTokenDal>();
 builder.Services.AddScoped<IVenueStaffDal, EfVenueStaffDal>();
 builder.Services.AddScoped<IVenueFeatureDal, EfVenueFeatureDal>();
 builder.Services.AddScoped<IVenueStaffHallDal, EfVenueStaffHallDal>();
+builder.Services.AddScoped<IAuditLogDal, EfAuditLogDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -84,6 +90,12 @@ builder.Services.AddScoped<IReviewService, ReviewManager>();
 builder.Services.AddScoped<IVenueAccessService, VenueAccessManager>();
 builder.Services.AddScoped<IVenueStaffService, VenueStaffManager>();
 builder.Services.AddScoped<IAdminService, AdminManager>();
+builder.Services.AddScoped<IAuditService, AuditManager>();
+
+// Fəaliyyət jurnalı: kontekst sorğu boyunca yaşayır, yazı isə arxa fonda gedir
+builder.Services.AddScoped<IAuditContext, AuditContext>();
+builder.Services.AddSingleton<IAuditWriter, AuditWriter>();
+builder.Services.AddHostedService<AuditBackgroundService>();
 
 // E-poçt: SMTP konfiqurasiya olunmayıbsa məktublar log-a yazılır
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailOptions"));

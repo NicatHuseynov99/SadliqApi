@@ -24,6 +24,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
         public DbSet<VenueStaffHall> VenueStaffHalls => Set<VenueStaffHall>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -71,6 +72,12 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasOne(h => h.Hall).WithMany()
                 .HasForeignKey(h => h.HallId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Jurnal sorğuları əsasən tarixə, istifadəçiyə və saraya görə süzülür
+            b.Entity<AuditLog>().HasIndex(a => a.CreatedAt);
+            b.Entity<AuditLog>().HasIndex(a => a.UserId);
+            b.Entity<AuditLog>().HasIndex(a => a.VenueId);
+            b.Entity<AuditLog>().HasIndex(a => a.Action);
 
             // Token axtarışı hash üzrə gedir
             b.Entity<PasswordResetToken>()
