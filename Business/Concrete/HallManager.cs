@@ -55,11 +55,10 @@ namespace Business.Concrete
                 : new SuccessDataResult<Hall>(hall);
         }
 
-        // Restoran sahibinin öz sarayına yeni zal əlavə etməsi
+        // Saraya yeni zal əlavə edir — sahib, dəstək və ya sarayın administratoru
         public async Task<IDataResult<Hall>> CreateAsync(CreateHallDto dto, int ownerId)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == dto.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageAsync(dto.VenueId, ownerId))
                 return new ErrorDataResult<Hall>("Bu saray sizə aid deyil.");
 
             var hall = new Hall
@@ -79,7 +78,7 @@ namespace Business.Concrete
             return new SuccessDataResult<Hall>(hall, "Zal əlavə olundu.");
         }
 
-        // Restoran sahibinin öz zalını redaktə etməsi
+        // Zalın redaktəsi — sahib, dəstək və ya həmin zala təyin olunmuş administrator
         public async Task<IResult> UpdateAsync(int id, UpdateHallDto dto, int ownerId)
         {
             var hall = await _hallDal.GetAsync(h => h.Id == id);
@@ -87,8 +86,7 @@ namespace Business.Concrete
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == hall.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageHallAsync(id, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             hall.Name = dto.Name;
@@ -121,15 +119,14 @@ namespace Business.Concrete
             return new SuccessResult("Zal yeniləndi.");
         }
 
-        // Restoran sahibinin öz zalını silməsi
+        // Zalın silinməsi — sahib, dəstək və ya həmin zala təyin olunmuş administrator
         public async Task<IResult> DeleteAsync(int id, int ownerId)
         {
             var hall = await _hallDal.GetAsync(h => h.Id == id);
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == hall.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
+            if (!await _access.CanManageHallAsync(id, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             await _hallDal.DeleteAsync(hall);

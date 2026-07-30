@@ -48,7 +48,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz zalını redaktə etməsi
-        [Authorize(Roles = "Owner,SuperAdmin,Support")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support,VenueAdmin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateHallDto dto)
         {
@@ -60,7 +60,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz zalını silməsi
-        [Authorize(Roles = "Owner,SuperAdmin,Support")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support,VenueAdmin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
