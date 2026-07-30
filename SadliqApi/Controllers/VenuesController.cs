@@ -96,7 +96,7 @@ namespace SadliqApi.Controllers
         }
 
         // Admin: təsdiq gözləyən sarayların siyahısı
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Support")]
         [HttpGet]
         public async Task<IActionResult> GetPending()
         {
@@ -105,7 +105,7 @@ namespace SadliqApi.Controllers
         }
 
         // Admin: sarayı təsdiqləyir, bundan sonra ictimai siyahıda görünür
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin,Support")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Approve(int id)
         {

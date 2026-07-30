@@ -1,4 +1,5 @@
 using Business.Abstract;
+using Entities.Concrete;
 using Entities.Dtos.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,10 +7,11 @@ using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
-    // Yalnız platformanın sahibi (SuperAdmin)
+    // Platforma idarəetməsi. Dəstək admini eyni panelə girir, amma SuperAdmin
+    // hesablarını görmür və onlara toxuna bilmir — süzgəc servis qatındadır.
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "SuperAdmin,Support")]
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
@@ -19,10 +21,15 @@ namespace SadliqApi.Controllers
             _adminService = adminService;
         }
 
+        private UserRole ViewerRole =>
+            Enum.TryParse<UserRole>(User.FindFirstValue(ClaimTypes.Role), true, out var role)
+                ? role
+                : UserRole.Support;
+
         [HttpGet]
         public async Task<IActionResult> GetStats()
         {
-            var result = await _adminService.GetStatsAsync();
+            var result = await _adminService.GetStatsAsync(ViewerRole);
             return Ok(result);
         }
 
@@ -30,7 +37,7 @@ namespace SadliqApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUsers([FromQuery] string? role)
         {
-            var result = await _adminService.GetUsersAsync(role);
+            var result = await _adminService.GetUsersAsync(role, ViewerRole);
             return Ok(result);
         }
 
@@ -38,7 +45,7 @@ namespace SadliqApi.Controllers
         public async Task<IActionResult> ChangeRole(int userId, [FromBody] ChangeRoleDto dto)
         {
             var currentAdminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var result = await _adminService.ChangeRoleAsync(userId, dto, currentAdminId);
+            var result = await _adminService.ChangeRoleAsync(userId, dto, currentAdminId, ViewerRole);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

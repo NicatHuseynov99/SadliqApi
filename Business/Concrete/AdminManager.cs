@@ -29,10 +29,13 @@ namespace Business.Concrete
             _reviewDal = reviewDal;
         }
 
-        // Platformanın ümumi mənzərəsi — admin panelinin yuxarı hissəsi
-        public async Task<IDataResult<PlatformStatsDto>> GetStatsAsync()
+        // Platformanın ümumi mənzərəsi — admin panelinin yuxarı hissəsi.
+        // Dəstək admini üçün SuperAdmin hesabları saya daxil edilmir.
+        public async Task<IDataResult<PlatformStatsDto>> GetStatsAsync(UserRole viewerRole)
         {
             var users = await _userDal.GetListAsync();
+            users = HideSuperAdmins(users, viewerRole);
+
             var venues = await _venueDal.GetListAsync();
             var reservations = await _reservationDal.GetListAsync();
             var reviews = await _reviewDal.GetListAsync();
@@ -52,10 +55,12 @@ namespace Business.Concrete
             return new SuccessDataResult<PlatformStatsDto>(stats);
         }
 
-        // İstifadəçi siyahısı, istəyə görə rola süzülmüş
-        public async Task<IDataResult<List<AdminUserDto>>> GetUsersAsync(string? role)
+        // İstifadəçi siyahısı, istəyə görə rola süzülmüş.
+        // Dəstək admini SuperAdmin hesablarını ümumiyyətlə görmür.
+        public async Task<IDataResult<List<AdminUserDto>>> GetUsersAsync(string? role, UserRole viewerRole)
         {
             var query = await _userDal.GetListAsync();
+            query = HideSuperAdmins(query, viewerRole);
 
             if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var parsed))
                 query = query.Where(u => u.Role == parsed);
@@ -82,6 +87,12 @@ namespace Business.Concrete
             return new SuccessDataResult<List<AdminUserDto>>(result);
         }
 
+        // Dəstək admini üçün SuperAdmin hesabları siyahıdan çıxarılır
+        private static IQueryable<User> HideSuperAdmins(IQueryable<User> query, UserRole viewerRole) =>
+            viewerRole == UserRole.SuperAdmin
+                ? query
+                : query.Where(u => u.Role != UserRole.SuperAdmin);
+
         // Rolların Azərbaycanca adları — jurnal mətnlərində işlənir
         private static string RoleName(UserRole role) => role switch
         {
@@ -94,7 +105,7 @@ namespace Business.Concrete
         };
 
         // Rol dəyişikliyi. Admin öz rolunu aşağı sala bilməz — sistemdə adminsiz qalma riski var
-        public async Task<IResult> ChangeRoleAsync(int userId, ChangeRoleDto dto, int currentAdminId)
+        public async Task<IResult> ChangeRoleAsync(int userId, ChangeRoleDto dto, int currentAdminId, UserRole viewerRole)
         {
             if (!Enum.TryParse<UserRole>(dto.Role, true, out var role))
                 return new ErrorResult("Belə rol yoxdur.");
@@ -105,6 +116,16 @@ namespace Business.Concrete
             var user = await _userDal.GetAsync(u => u.Id == userId);
             if (user is null)
                 return new ErrorResult("İstifadəçi tapılmadı.");
+
+            // Dəstək admini SuperAdmin hesabına toxuna və kimisə SuperAdmin edə bilməz
+            if (viewerRole != UserRole.SuperAdmin)
+            {
+                if (user.Role == UserRole.SuperAdmin)
+                    return new ErrorResult("Bu hesaba yalnız platforma sahibi toxuna bilər.");
+
+                if (role == UserRole.SuperAdmin)
+                    return new ErrorResult("SuperAdmin rolunu yalnız platforma sahibi verə bilər.");
+            }
 
             var oldRole = user.Role;
             user.Role = role;
