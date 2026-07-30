@@ -54,6 +54,9 @@ namespace SadliqApi.Audit
             ["Admin.ChangeRole"] = ("UserRoleChanged", "istifadəçinin rolunu dəyişdi"),
             ["Admin.GetUsers"] = ("AdminViewedUsers", "istifadəçi siyahısına baxdı"),
             ["Admin.GetStats"] = ("AdminViewedStats", "platforma göstəricilərinə baxdı"),
+            ["Admin.GetUserDetail"] = ("AdminViewedUser", "istifadəçi kartına baxdı"),
+            ["Admin.SetUserActive"] = ("UserBlocked", "istifadəçi hesabının statusunu dəyişdi"),
+            ["Admin.ResetUserPassword"] = ("UserPasswordReset", "istifadəçinin parolunu sıfırladı"),
             ["Audit.Search"] = ("AuditViewed", "fəaliyyət jurnalına baxdı"),
         };
 

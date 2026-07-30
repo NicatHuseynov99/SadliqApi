@@ -33,11 +33,20 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // ?role=Owner ilə süzmək olar
+        // ?role=Owner&q=ali&status=blocked ilə süzmək olar
         [HttpGet]
-        public async Task<IActionResult> GetUsers([FromQuery] string? role)
+        public async Task<IActionResult> GetUsers([FromQuery] string? role, [FromQuery] string? q, [FromQuery] string? status)
         {
-            var result = await _adminService.GetUsersAsync(role, ViewerRole);
+            var result = await _adminService.GetUsersAsync(role, q, status, ViewerRole);
+            return Ok(result);
+        }
+
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUserDetail(int userId)
+        {
+            var result = await _adminService.GetUserDetailAsync(userId, ViewerRole);
+            if (!result.Success)
+                return NotFound(result);
             return Ok(result);
         }
 
@@ -46,6 +55,25 @@ namespace SadliqApi.Controllers
         {
             var currentAdminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _adminService.ChangeRoleAsync(userId, dto, currentAdminId, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> SetUserActive(int userId, [FromBody] SetUserActiveDto dto)
+        {
+            var currentAdminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _adminService.SetUserActiveAsync(userId, dto, currentAdminId, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> ResetUserPassword(int userId, [FromBody] AdminResetPasswordDto dto)
+        {
+            var result = await _adminService.ResetUserPasswordAsync(userId, dto, ViewerRole);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

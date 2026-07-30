@@ -10,7 +10,10 @@ namespace Business.Abstract
     public interface IAdminService
     {
         Task<IDataResult<PlatformStatsDto>> GetStatsAsync(UserRole viewerRole);
-        Task<IDataResult<List<AdminUserDto>>> GetUsersAsync(string? role, UserRole viewerRole);
+        Task<IDataResult<List<AdminUserDto>>> GetUsersAsync(string? role, string? q, string? status, UserRole viewerRole);
+        Task<IDataResult<AdminUserDetailDto>> GetUserDetailAsync(int userId, UserRole viewerRole);
         Task<IResult> ChangeRoleAsync(int userId, ChangeRoleDto dto, int currentAdminId, UserRole viewerRole);
+        Task<IResult> SetUserActiveAsync(int userId, SetUserActiveDto dto, int currentAdminId, UserRole viewerRole);
+        Task<IResult> ResetUserPasswordAsync(int userId, AdminResetPasswordDto dto, UserRole viewerRole);
     }
 }

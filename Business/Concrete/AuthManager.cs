@@ -87,6 +87,15 @@ namespace Business.Concrete
             if (!HashingHelper.VerifyPasswordHash(dto.Password, user.PasswordHash, user.PasswordSalt))
                 return new ErrorDataResult<TokenResponseDto>("Parol yanlışdır.");
 
+            // Bloklanmış hesab doğru parolla da içəri girə bilmir
+            if (!user.IsActive)
+            {
+                _audit.SetActor(user.Id, user.FullName, (int)user.Role);
+                _audit.Set("BlockedLoginAttempt",
+                    $"{user.FullName} bloklanmış hesabla girməyə çalışdı", "User", user.Id);
+                return new ErrorDataResult<TokenResponseDto>("Hesabınız bloklanıb. Dəstək xidməti ilə əlaqə saxlayın.");
+            }
+
             // Jurnalda "Qonaq" yox, real istifadəçi görünsün
             _audit.SetActor(user.Id, user.FullName, (int)user.Role);
             _audit.Set("UserLoggedIn", $"{user.FullName} sistemə daxil oldu", "User", user.Id);

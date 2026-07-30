@@ -24,6 +24,10 @@ namespace Entities.Concrete
         public byte[] PasswordSalt { get; set; }
 
         public UserRole Role { get; set; } = UserRole.Customer;
+
+        // Bloklanmış istifadəçi sistemə girə bilmir, amma məlumatları silinmir
+        public bool IsActive { get; set; } = true;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

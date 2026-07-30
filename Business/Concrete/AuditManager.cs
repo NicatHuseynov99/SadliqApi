@@ -145,6 +145,11 @@ namespace Business.Concrete
             ["StaffDeleted"] = "Administrator silindi",
             ["UserRoleChanged"] = "İstifadəçinin rolu dəyişdi",
             ["AdminViewedUsers"] = "İstifadəçi siyahısına baxış",
+            ["AdminViewedUser"] = "İstifadəçi kartına baxış",
+            ["UserBlocked"] = "İstifadəçi bloklandı",
+            ["UserUnblocked"] = "İstifadəçinin bloku götürüldü",
+            ["UserPasswordReset"] = "Parol admin tərəfindən sıfırlandı",
+            ["BlockedLoginAttempt"] = "Bloklanmış hesabla giriş cəhdi",
             ["AdminViewedStats"] = "Göstəricilərə baxış",
             ["AuditViewed"] = "Jurnala baxış",
         };
