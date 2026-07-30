@@ -41,7 +41,7 @@ namespace SadliqApi.Controllers
         }
 
         // Sarayın rezerv sorğuları — sahib və ya həmin sarayın administratoru
-        [Authorize(Roles = "Owner,VenueAdmin")]
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpGet("{venueId}")]
         public async Task<IActionResult> GetByVenue(int venueId)
         {
@@ -53,7 +53,7 @@ namespace SadliqApi.Controllers
         }
 
         // İdarə edilən bütün sarayların rezervləri — panel tək sorğu ilə dolur
-        [Authorize(Roles = "Owner,VenueAdmin")]
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpGet]
         public async Task<IActionResult> GetForOwner()
         {
@@ -63,7 +63,7 @@ namespace SadliqApi.Controllers
         }
 
         // Rezervin təsdiqi/rəddi — sahib və ya sarayın administratoru (Status: 0=Pending, 1=Confirmed, 2=Rejected, 3=Cancelled)
-        [Authorize(Roles = "Owner,VenueAdmin")]
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateReservationStatusDto dto)
         {

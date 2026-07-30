@@ -28,9 +28,11 @@ namespace Business.Concrete
         }
 
         // Sahibin saraylarına təyin olunmuş bütün administratorlar
+        // (SuperAdmin bütün sarayları idarə etdiyi üçün hamısını görür)
         public async Task<IDataResult<List<VenueStaffDto>>> GetMineAsync(int ownerId)
         {
-            var venueQuery = await _venueDal.GetListAsync(v => v.OwnerId == ownerId);
+            var managedIds = await _access.GetManagedVenueIdsAsync(ownerId);
+            var venueQuery = await _venueDal.GetListAsync(v => managedIds.Contains(v.Id));
             var venues = await venueQuery.Select(v => new { v.Id, v.Name }).ToListAsync();
             var venueIds = venues.Select(v => v.Id).ToList();
 
@@ -132,6 +134,45 @@ namespace Business.Concrete
                 IsActive = true,
                 CreatedAt = staff.CreatedAt
             }, "Administrator əlavə olundu.");
+        }
+
+        // Administratorun ad, soyad və telefonunu yeniləyir
+        public async Task<IResult> UpdateAsync(int staffId, UpdateVenueStaffDto dto, int ownerId)
+        {
+            if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName))
+                return new ErrorResult("Ad və soyad boş ola bilməz.");
+
+            var staff = await _staffDal.GetAsync(s => s.Id == staffId);
+            if (staff is null)
+                return new ErrorResult("Administrator tapılmadı.");
+
+            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+                return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
+
+            var user = await _userDal.GetAsync(u => u.Id == staff.UserId);
+            if (user is null)
+                return new ErrorResult("İstifadəçi tapılmadı.");
+
+            user.FirstName = dto.FirstName.Trim();
+            user.LastName = dto.LastName.Trim();
+            user.Phone = dto.Phone?.Trim() ?? string.Empty;
+            await _userDal.UpdateAsync(user);
+
+            return new SuccessResult("Administratorun məlumatları yeniləndi.");
+        }
+
+        // Təyinatı silir. Hesabın özü qalır, çünki onun təsdiqlədiyi rezervlər tarixçədədir
+        public async Task<IResult> DeleteAsync(int staffId, int ownerId)
+        {
+            var staff = await _staffDal.GetAsync(s => s.Id == staffId);
+            if (staff is null)
+                return new ErrorResult("Administrator tapılmadı.");
+
+            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+                return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
+
+            await _staffDal.DeleteAsync(staff);
+            return new SuccessResult("Administrator siyahıdan silindi.");
         }
 
         // Deaktiv edilən administrator sistemə girə bilsə də sarayın datasını görmür

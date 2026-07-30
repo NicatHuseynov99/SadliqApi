@@ -36,7 +36,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz sarayına yeni zal əlavə etməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateHallDto dto)
         {
@@ -48,7 +48,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz zalını redaktə etməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateHallDto dto)
         {
@@ -60,7 +60,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz zalını silməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -80,7 +80,7 @@ namespace SadliqApi.Controllers
         }
 
         // Bir günü əl ilə dolu/boş/tutulu etmək — sahib və ya sarayın administratoru
-        [Authorize(Roles = "Owner,VenueAdmin")]
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpPut("{hallId}")]
         public async Task<IActionResult> SetAvailability(int hallId, [FromBody] SetAvailabilityDto dto)
         {

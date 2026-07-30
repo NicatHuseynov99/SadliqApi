@@ -10,7 +10,7 @@ namespace SadliqApi.Controllers
     // VenueAdmin özü başqa administrator yarada bilməz — səlahiyyət artırmanın qarşısı alınır.
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Owner,SuperAdmin,Support")]
     public class VenueStaffController : ControllerBase
     {
         private readonly IVenueStaffService _staffService;
@@ -34,6 +34,26 @@ namespace SadliqApi.Controllers
         public async Task<IActionResult> Create([FromBody] CreateVenueStaffDto dto)
         {
             var result = await _staffService.CreateAsync(dto, CurrentUserId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Ad, soyad və telefonu yeniləyir
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateVenueStaffDto dto)
+        {
+            var result = await _staffService.UpdateAsync(id, dto, CurrentUserId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Təyinatı siyahıdan silir
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _staffService.DeleteAsync(id, CurrentUserId);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

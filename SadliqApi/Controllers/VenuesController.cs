@@ -52,7 +52,7 @@ namespace SadliqApi.Controllers
         }
 
         // İdarə edilən saraylar: sahib öz saraylarını, administrator təyin olunduqlarını görür
-        [Authorize(Roles = "Owner,VenueAdmin")]
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpGet]
         public async Task<IActionResult> GetMine()
         {
@@ -62,7 +62,7 @@ namespace SadliqApi.Controllers
         }
 
         // Yeni sadlıq sarayı əlavə edir (yalnız Owner)
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateVenueDto dto)
         {
@@ -72,7 +72,7 @@ namespace SadliqApi.Controllers
         }
 
         // Owner öz sarayının məlumatlarını redaktə edir
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateVenueDto dto)
         {
@@ -84,7 +84,7 @@ namespace SadliqApi.Controllers
         }
 
         // Owner öz sarayını silir
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

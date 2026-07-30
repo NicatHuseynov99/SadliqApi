@@ -15,6 +15,8 @@ namespace Business.Concrete
         private readonly IHallDal _hallDal;
         private readonly IMenuDal _menuDal;
         private readonly IVenueAccessService _access;
+        private readonly IUserDal _userDal;
+        private readonly IEmailService _emailService;
 
         public ReservationManager(
             IReservationDal reservationDal,
@@ -22,7 +24,9 @@ namespace Business.Concrete
             IVenueDal venueDal,
             IHallDal hallDal,
             IMenuDal menuDal,
-            IVenueAccessService access)
+            IVenueAccessService access,
+            IUserDal userDal,
+            IEmailService emailService)
         {
             _reservationDal = reservationDal;
             _availabilityDal = availabilityDal;
@@ -30,6 +34,8 @@ namespace Business.Concrete
             _hallDal = hallDal;
             _menuDal = menuDal;
             _access = access;
+            _userDal = userDal;
+            _emailService = emailService;
         }
 
         // Zal + gün + menyu seçib rezerv sorğusu göndərir.
@@ -108,7 +114,66 @@ namespace Business.Concrete
                 await _availabilityDal.UpdateAsync(existingAvailability);
             }
 
+            // Saray sahibinə yeni sorğu barədə xəbər verilir (e-poçt konfiqurasiya olunmayıbsa log-a düşür)
+            await NotifyOwnerAsync(venue, hall, menu, reservation);
+
             return new SuccessDataResult<Reservation>(reservation, "Rezerv sorğusu göndərildi.");
+        }
+
+        // Sahibə yeni rezerv sorğusu barədə məktub
+        private async Task NotifyOwnerAsync(Venue venue, Hall hall, Menu menu, Reservation reservation)
+        {
+            var owner = await _userDal.GetAsync(u => u.Id == venue.OwnerId);
+            if (owner is null || string.IsNullOrWhiteSpace(owner.Email))
+                return;
+
+            var body = $@"
+                <div style='font-family:Segoe UI,Arial,sans-serif;color:#1a1118'>
+                  <h2 style='color:#721438'>Yeni rezerv sorğusu</h2>
+                  <p><b>{venue.Name}</b> üçün yeni sorğu daxil oldu.</p>
+                  <ul>
+                    <li>Zal: {hall.Name}</li>
+                    <li>Tarix: {reservation.EventDate:dd.MM.yyyy}</li>
+                    <li>Qonaq sayı: {reservation.GuestCount}</li>
+                    <li>Menyu: {menu.Name} ({menu.PricePerPerson} ₼ / nəfər)</li>
+                    <li>Əlaqə: {reservation.ContactPhone}</li>
+                  </ul>
+                  <p>Sorğunu idarəetmə panelindən təsdiqləyə və ya rədd edə bilərsiniz.</p>
+                </div>";
+
+            await _emailService.SendAsync(owner.Email, $"Yeni rezerv sorğusu — {venue.Name}", body);
+        }
+
+        // Müştəriyə sorğunun nəticəsi barədə məktub
+        private async Task NotifyCustomerAsync(Reservation reservation, ReservationStatus status)
+        {
+            var customer = await _userDal.GetAsync(u => u.Id == reservation.CustomerId);
+            if (customer is null || string.IsNullOrWhiteSpace(customer.Email))
+                return;
+
+            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
+            var venueName = venue?.Name ?? "Saray";
+
+            var (title, message) = status switch
+            {
+                ReservationStatus.Confirmed => ("Rezerviniz təsdiqləndi",
+                    $"<b>{venueName}</b> üçün {reservation.EventDate:dd.MM.yyyy} tarixinə göndərdiyiniz sorğu təsdiqləndi. Təbrik edirik!"),
+                ReservationStatus.Rejected => ("Rezerv sorğunuz rədd edildi",
+                    $"<b>{venueName}</b> üçün {reservation.EventDate:dd.MM.yyyy} tarixinə göndərdiyiniz sorğu təəssüf ki qəbul olunmadı. Başqa tarix və ya saray seçə bilərsiniz."),
+                _ => (string.Empty, string.Empty)
+            };
+
+            if (string.IsNullOrEmpty(title))
+                return;
+
+            var body = $@"
+                <div style='font-family:Segoe UI,Arial,sans-serif;color:#1a1118'>
+                  <h2 style='color:#721438'>{title}</h2>
+                  <p>{message}</p>
+                  <p style='color:#868e96;font-size:13px'>Şadlıq Sarayları</p>
+                </div>";
+
+            await _emailService.SendAsync(customer.Email, title, body);
         }
 
         // Müştərinin öz göndərdiyi bütün rezerv sorğularının siyahısı (status izləmək üçün)
@@ -183,6 +248,9 @@ namespace Business.Concrete
                 };
                 await _availabilityDal.UpdateAsync(availability);
             }
+
+            // Müştəriyə nəticə barədə xəbər verilir
+            await NotifyCustomerAsync(reservation, dto.Status);
 
             return new SuccessResult("Status yeniləndi.");
         }

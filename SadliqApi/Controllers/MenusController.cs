@@ -36,7 +36,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin yeni menyu paketi əlavə etməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateMenuDto dto)
         {
@@ -48,7 +48,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz menyusunu redaktə etməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateMenuDto dto)
         {
@@ -60,7 +60,7 @@ namespace SadliqApi.Controllers
         }
 
         // Restoran sahibinin öz menyusunu silməsi
-        [Authorize(Roles = "Owner")]
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
