@@ -13,6 +13,9 @@ namespace Business.Abstract
         // Sahibin bütün saraylarına gələn rezervlər — panel tək sorğu ilə dolur
         Task<IDataResult<List<Reservation>>> GetByOwnerAsync(int ownerId);
         Task<IResult> UpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto, int ownerId);
+
+        // Platforma admini üçün — sahiblik yoxlaması aparılmır
+        Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto);
         Task<IResult> CancelAsync(int reservationId, int customerId);
     }
 }

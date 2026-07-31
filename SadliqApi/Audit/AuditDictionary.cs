@@ -43,6 +43,9 @@ namespace SadliqApi.Audit
             ["Reviews.Report"] = ("ReviewReported", "rəyi şikayət etdi"),
             ["Favorites.Toggle"] = ("FavoriteToggled", "seçilmişlər siyahısını dəyişdi"),
 
+            // Platforma üzrə rezervlər
+            ["AdminReservations.UpdateStatus"] = ("ReservationStatusChangedByAdmin", "rezervin statusunu admin olaraq dəyişdi"),
+
             // Rəy moderasiyası
             ["ReviewModeration.SetHidden"] = ("ReviewModerated", "rəyin görünüşünü dəyişdi"),
             ["ReviewModeration.ResolveReports"] = ("ReviewReportsResolved", "rəyin şikayətlərini bağladı"),

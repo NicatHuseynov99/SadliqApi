@@ -253,6 +253,27 @@ namespace Business.Concrete
             if (!await _access.CanManageHallAsync(reservation.HallId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
+            return await ApplyStatusAsync(reservation, dto.Status);
+        }
+
+        // Platforma admini sahibin icazəsi olmadan da statusu dəyişə bilər —
+        // mübahisəli hallarda müdaxilə etmək lazım gəlir. Nəticə eyni cür işlənir.
+        public async Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto)
+        {
+            var reservation = await _reservationDal.GetAsync(r => r.Id == reservationId);
+            if (reservation is null)
+                return new ErrorResult("Rezerv tapılmadı.");
+
+            if (reservation.Status == dto.Status)
+                return new ErrorResult("Rezerv artıq bu vəziyyətdədir.");
+
+            return await ApplyStatusAsync(reservation, dto.Status);
+        }
+
+        // Status dəyişikliyinin bütün nəticələri: təqvim, bildiriş, jurnal
+        private async Task<IResult> ApplyStatusAsync(Reservation reservation, ReservationStatus status)
+        {
+            var dto = new UpdateReservationStatusDto { Status = status };
             reservation.Status = dto.Status;
             await _reservationDal.UpdateAsync(reservation);
 

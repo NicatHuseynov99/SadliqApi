@@ -136,6 +136,7 @@ namespace Business.Concrete
             ["ReviewCreated"] = "Rəy yazıldı",
             ["ReviewUpdated"] = "Rəy redaktə edildi",
             ["ReviewDeleted"] = "Rəy silindi",
+            ["ReservationStatusChangedByAdmin"] = "Rezerv statusunu admin dəyişdi",
             ["ReviewReported"] = "Rəy şikayət edildi",
             ["ReviewModerated"] = "Rəyin görünüşü dəyişdi",
             ["ReviewHidden"] = "Rəy gizlədildi",
