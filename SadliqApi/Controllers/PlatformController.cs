@@ -38,42 +38,135 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+
+        // ---------- İnterfeys mətnləri ----------
+
         [HttpGet]
-        public async Task<IActionResult> GetCities()
+        public async Task<IActionResult> GetTextCategories()
         {
-            var result = await _service.GetCitiesAsync();
+            var result = await _service.GetTextCategoriesAsync();
             return Ok(result);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> RenameCity([FromBody] RenameReferenceDto dto)
+        [HttpGet("{category}")]
+        public async Task<IActionResult> GetTexts(string category, [FromQuery] string? q)
         {
-            var result = await _service.RenameCityAsync(dto);
+            var result = await _service.GetTextsAsync(category, q);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateText([FromBody] AppTextFormDto dto)
+        {
+            var result = await _service.CreateTextAsync(dto);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetFeatures()
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateText(int id, [FromBody] AppTextFormDto dto)
         {
-            var result = await _service.GetFeaturesAsync();
-            return Ok(result);
-        }
-
-        [HttpPut]
-        public async Task<IActionResult> RenameFeature([FromBody] RenameReferenceDto dto)
-        {
-            var result = await _service.RenameFeatureAsync(dto);
+            var result = await _service.UpdateTextAsync(id, dto);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);
         }
 
-        [HttpDelete("{name}")]
-        public async Task<IActionResult> DeleteFeature(string name)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteText(int id)
         {
-            var result = await _service.DeleteFeatureAsync(name);
+            var result = await _service.DeleteTextAsync(id);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // ---------- Şəhər kitabçası ----------
+
+        [HttpGet]
+        public async Task<IActionResult> GetCities([FromQuery] bool includeDeleted = false)
+        {
+            var result = await _service.GetCitiesAsync(includeDeleted);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateCity([FromBody] ReferenceFormDto dto)
+        {
+            var result = await _service.CreateCityAsync(dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCity(int id, [FromBody] ReferenceFormDto dto)
+        {
+            var result = await _service.UpdateCityAsync(id, dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCity(int id)
+        {
+            var result = await _service.DeleteCityAsync(id);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> RestoreCity(int id)
+        {
+            var result = await _service.RestoreCityAsync(id);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // ---------- Özəllik kitabçası ----------
+
+        [HttpGet]
+        public async Task<IActionResult> GetFeatures([FromQuery] bool includeDeleted = false)
+        {
+            var result = await _service.GetFeaturesAsync(includeDeleted);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateFeature([FromBody] ReferenceFormDto dto)
+        {
+            var result = await _service.CreateFeatureAsync(dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateFeature(int id, [FromBody] ReferenceFormDto dto)
+        {
+            var result = await _service.UpdateFeatureAsync(id, dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteFeature(int id)
+        {
+            var result = await _service.DeleteFeatureAsync(id);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> RestoreFeature(int id)
+        {
+            var result = await _service.RestoreFeatureAsync(id);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

@@ -16,17 +16,20 @@ namespace Business.Concrete
         private readonly IReviewReportDal _reportDal;
         private readonly IVenueDal _venueDal;
         private readonly IReviewEditDal _editDal;
+        private readonly ITextCatalog _texts;
 
         public ReviewModerationManager(
             IReviewDal reviewDal,
             IReviewReportDal reportDal,
             IVenueDal venueDal,
-            IReviewEditDal editDal)
+            IReviewEditDal editDal,
+            ITextCatalog texts)
         {
             _reviewDal = reviewDal;
             _reportDal = reportDal;
             _venueDal = venueDal;
             _editDal = editDal;
+            _texts = texts;
         }
 
         public async Task<IDataResult<ReviewModerationStatsDto>> GetStatsAsync()
@@ -342,14 +345,7 @@ namespace Business.Concrete
             return open.Count;
         }
 
-        // Şikayət səbəbinin oxunaqlı adı
-        private static string ReasonLabel(string reason) => reason switch
-        {
-            "spam" => "Reklam / spam",
-            "offensive" => "Təhqiramiz dil",
-            "fake" => "Saxta rəy",
-            "irrelevant" => "Mövzuya aid deyil",
-            _ => "Digər"
-        };
+        // Şikayət səbəbləri bazadadır ("report_reason" kateqoriyası)
+        private string ReasonLabel(string reason) => _texts.Get(TextCategories.ReportReason, reason);
     }
 }

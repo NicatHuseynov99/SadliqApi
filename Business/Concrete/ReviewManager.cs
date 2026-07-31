@@ -13,17 +13,20 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IReviewReportDal _reportDal;
         private readonly IPlatformSettingsService _settings;
+        private readonly ITextCatalog _texts;
 
         public ReviewManager(
             IReviewDal reviewDal,
             IVenueDal venueDal,
             IReviewReportDal reportDal,
-            IPlatformSettingsService settings)
+            IPlatformSettingsService settings,
+            ITextCatalog texts)
         {
             _reviewDal = reviewDal;
             _venueDal = venueDal;
             _reportDal = reportDal;
             _settings = settings;
+            _texts = texts;
         }
 
         // Sarayın bütün rəyləri — yenilər yuxarıda
@@ -102,7 +105,8 @@ namespace Business.Concrete
         // İstifadəçi rəyi şikayət edir. Rəy dərhal gizlənmir — qərarı moderator verir.
         public async Task<IResult> ReportAsync(ReportReviewDto dto, int userId)
         {
-            if (!AllowedReasons.Contains(dto.Reason))
+            // İcazəli səbəblər bazadakı kitabçadan gəlir
+            if (!_texts.Map(TextCategories.ReportReason).ContainsKey(dto.Reason ?? string.Empty))
                 return new ErrorResult("Şikayət səbəbi düzgün seçilməyib.");
 
             var review = await _reviewDal.GetAsync(r => r.Id == dto.ReviewId);
@@ -146,8 +150,6 @@ namespace Business.Concrete
                 ? "Şikayətiniz qeydə alındı, rəy yoxlanana qədər gizlədildi."
                 : "Şikayətiniz moderatora göndərildi.");
         }
-
-        private static readonly string[] AllowedReasons = { "spam", "offensive", "fake", "irrelevant", "other" };
 
         // Bal və mətn yoxlaması — xəta varsa mesaj, yoxdursa null qaytarır
         private static string? Validate(int rating, string comment)

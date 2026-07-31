@@ -18,11 +18,20 @@ namespace Business.Concrete
     {
         private readonly SadliqDbContext _context;
         private readonly IAuditContext _audit;
+        private readonly ITextCatalog _texts;
 
-        public DataExplorerManager(SadliqDbContext context, IAuditContext audit)
+        public DataExplorerManager(SadliqDbContext context, IAuditContext audit, ITextCatalog texts)
         {
             _context = context;
             _audit = audit;
+            _texts = texts;
+        }
+
+        // Mətn cədvəli dəyişəndə yaddaşdakı kataloq köhnəlir — təzələyirik
+        private void InvalidateIfTexts(string table)
+        {
+            if (string.Equals(table, "AppTexts", StringComparison.OrdinalIgnoreCase))
+                _texts.Invalidate();
         }
 
         // Parol hashları heç vaxt paneldə görünməməli və dəyişdirilməməlidir
@@ -31,30 +40,7 @@ namespace Business.Concrete
             "PasswordHash", "PasswordSalt"
         };
 
-        // Cədvəllərin oxunaqlı adları
-        private static readonly Dictionary<string, string> Labels = new()
-        {
-            ["Users"] = "İstifadəçilər",
-            ["Venues"] = "Saraylar",
-            ["VenueImages"] = "Saray şəkilləri",
-            ["VenueFeatures"] = "Saray özəllikləri",
-            ["Halls"] = "Zallar",
-            ["HallMedia"] = "Zal şəkilləri",
-            ["HallAvailabilities"] = "Zal təqvimi",
-            ["Menus"] = "Menyular",
-            ["MenuItems"] = "Menyu tərkibi",
-            ["Reservations"] = "Rezervlər",
-            ["Reviews"] = "Rəylər",
-            ["ReviewReports"] = "Rəy şikayətləri",
-            ["Favorites"] = "Seçilmişlər",
-            ["VenueStaff"] = "Saray administratorları",
-            ["VenueStaffHalls"] = "Administrator zalları",
-            ["AuditLogs"] = "Fəaliyyət jurnalı",
-            ["PageViews"] = "Ziyarət qeydləri",
-            ["PasswordResetTokens"] = "Parol bərpa açarları",
-            ["PlatformSettings"] = "Platforma parametrləri",
-            ["ReviewEdits"] = "Rəy düzəlişləri"
-        };
+        // Cədvəllərin oxunaqlı adları da bazadadır ("table_label" kateqoriyası)
 
         public async Task<IDataResult<List<TableInfoDto>>> GetTablesAsync(UserRole viewerRole)
         {
@@ -68,7 +54,7 @@ namespace Business.Concrete
                 list.Add(new TableInfoDto
                 {
                     Name = table,
-                    Label = Labels.TryGetValue(table, out var label) ? label : table,
+                    Label = Label(table),
                     RowCount = count
                 });
             }
@@ -173,6 +159,7 @@ namespace Business.Concrete
                 return new ErrorResult(Explain(ex));
             }
 
+            InvalidateIfTexts(meta.Name);
             _audit.Set("DataRowCreated", $"«{Label(meta.Name)}» cədvəlinə yeni sətir əlavə etdi", meta.Name);
             return new SuccessResult("Sətir əlavə olundu.");
         }
@@ -213,6 +200,7 @@ namespace Business.Concrete
             if (affected == 0)
                 return new ErrorResult("Sətir tapılmadı.");
 
+            InvalidateIfTexts(meta.Name);
             _audit.Set("DataRowUpdated", $"«{Label(meta.Name)}» cədvəlində sətri dəyişdi", meta.Name);
             return new SuccessResult("Sətir yeniləndi.");
         }
@@ -358,7 +346,7 @@ namespace Business.Concrete
             string.Equals(table, "ReviewEdits", StringComparison.OrdinalIgnoreCase)
             && viewerRole != UserRole.SuperAdmin;
 
-        private static string Label(string table) => Labels.TryGetValue(table, out var l) ? l : table;
+        private string Label(string table) => _texts.Get(TextCategories.TableLabel, table);
 
         private static List<ColumnInfoDto> Columns(TableMeta meta)
         {

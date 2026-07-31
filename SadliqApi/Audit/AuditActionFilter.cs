@@ -27,10 +27,13 @@ namespace SadliqApi.Audit
         private readonly IAuditWriter _writer;
         private readonly IAuditContext _auditContext;
 
-        public AuditActionFilter(IAuditWriter writer, IAuditContext auditContext)
+        private readonly ITextCatalog _texts;
+
+        public AuditActionFilter(IAuditWriter writer, IAuditContext auditContext, ITextCatalog texts)
         {
             _writer = writer;
             _auditContext = auditContext;
+            _texts = texts;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -57,7 +60,7 @@ namespace SadliqApi.Audit
             var statusCode = executed.HttpContext.Response.StatusCode;
             var isSuccess = executed.Exception is null && statusCode < 400;
 
-            var (defaultAction, defaultText) = AuditDictionary.Resolve(controller, action);
+            var (defaultAction, defaultText) = AuditDictionary.Resolve(_texts, controller, action);
 
             // Giriş/qeydiyyatda istifadəçi hələ token daşımır — servis özü bildirir
             var userName = _auditContext.ActorName

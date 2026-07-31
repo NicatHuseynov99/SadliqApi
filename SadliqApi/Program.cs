@@ -3,6 +3,7 @@ using Business.Concrete;
 using Business.Security.Jwt;
 using Business.Utilities.Email;
 using SadliqApi.Audit;
+using SadliqApi.Texts;
 using SadliqApi.Visits;
 using Core.Utilities.Security.Encryption;
 using DataAccess.Abstract;
@@ -82,6 +83,9 @@ builder.Services.AddScoped<IPageViewDal, EfPageViewDal>();
 builder.Services.AddScoped<IReviewReportDal, EfReviewReportDal>();
 builder.Services.AddScoped<IPlatformSettingDal, EfPlatformSettingDal>();
 builder.Services.AddScoped<IReviewEditDal, EfReviewEditDal>();
+builder.Services.AddScoped<ICityDal, EfCityDal>();
+builder.Services.AddScoped<IFeatureDal, EfFeatureDal>();
+builder.Services.AddScoped<IAppTextDal, EfAppTextDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -102,6 +106,9 @@ builder.Services.AddScoped<IAdminReservationService, AdminReservationManager>();
 builder.Services.AddScoped<IPlatformSettingsService, PlatformSettingsManager>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
+
+// Mətn kataloqu: bazadan bir dəfə oxunur, yaddaşda saxlanılır
+builder.Services.AddSingleton<ITextCatalog, TextCatalog>();
 
 // Fəaliyyət jurnalı: kontekst sorğu boyunca yaşayır, yazı isə arxa fonda gedir
 builder.Services.AddScoped<IAuditContext, AuditContext>();

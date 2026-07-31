@@ -14,13 +14,20 @@ namespace Business.Concrete
         private readonly IVenueDal _venueDal;
         private readonly IUserDal _userDal;
         private readonly IVisitWriter _writer;
+        private readonly ITextCatalog _texts;
 
-        public VisitManager(IPageViewDal pageViewDal, IVenueDal venueDal, IUserDal userDal, IVisitWriter writer)
+        public VisitManager(
+            IPageViewDal pageViewDal,
+            IVenueDal venueDal,
+            IUserDal userDal,
+            IVisitWriter writer,
+            ITextCatalog texts)
         {
             _pageViewDal = pageViewDal;
             _venueDal = venueDal;
             _userDal = userDal;
             _writer = writer;
+            _texts = texts;
         }
 
         // Səhifə baxışını növbəyə atır. Sessiya ID-si olmadan yazmırıq —
@@ -223,18 +230,8 @@ namespace Business.Concrete
         }
 
         // Səhifə növlərinin Azərbaycanca adları
-        public static string PageLabel(string pageType) => pageType switch
-        {
-            "home" => "Ana səhifə",
-            "venue" => "Saray səhifəsi",
-            "search" => "Axtarış / filtr",
-            "favorites" => "Seçilmişlər",
-            "reservations" => "Rezervlərim",
-            "profile" => "Profil",
-            "login" => "Giriş səhifəsi",
-            "register" => "Qeydiyyat səhifəsi",
-            _ => "Digər"
-        };
+        // Səhifə adları bazadadır ("page_type" kateqoriyası) — admin paneldən dəyişilir
+        private string PageLabel(string pageType) => _texts.Get(TextCategories.PageType, pageType);
 
         private static string? Trim(string? value, int max)
         {

@@ -11,10 +11,12 @@ namespace Business.Concrete
     public class AuditManager : IAuditService
     {
         private readonly IAuditLogDal _auditLogDal;
+        private readonly ITextCatalog _texts;
 
-        public AuditManager(IAuditLogDal auditLogDal)
+        public AuditManager(IAuditLogDal auditLogDal, ITextCatalog texts)
         {
             _auditLogDal = auditLogDal;
+            _texts = texts;
         }
 
         // Jurnal siyahısı. Dəstək admini SuperAdmin-in əməliyyatlarını görmür —
@@ -94,7 +96,7 @@ namespace Business.Concrete
                 Actions = grouped.Select(g => new AuditActionOption
                 {
                     Code = g.Code,
-                    Label = AuditLabels.Describe(g.Code),
+                    Label = _texts.Get(TextCategories.AuditAction, g.Code),
                     Count = g.Count
                 }).ToList()
             };
@@ -108,79 +110,5 @@ namespace Business.Concrete
             viewerRole == UserRole.SuperAdmin
                 ? query
                 : query.Where(a => a.UserRole != UserRole.SuperAdmin && a.Action != "ReviewEditedByAdmin");
-    }
-
-    // Əməliyyat kodlarının Azərbaycanca adları (süzgəc siyahısı üçün)
-    public static class AuditLabels
-    {
-        private static readonly Dictionary<string, string> Map = new()
-        {
-            ["UserRegistered"] = "Qeydiyyat",
-            ["UserLoggedIn"] = "Sistemə giriş",
-            ["ProfileUpdated"] = "Profil yeniləndi",
-            ["PasswordChanged"] = "Parol dəyişdirildi",
-            ["PasswordResetRequested"] = "Parol sıfırlama sorğusu",
-            ["PasswordReset"] = "Parol bərpa edildi",
-            ["VenueCreated"] = "Saray yaradıldı",
-            ["VenueUpdated"] = "Saray yeniləndi",
-            ["VenueDeleted"] = "Saray silindi",
-            ["VenueApproved"] = "Saray təsdiqləndi",
-            ["HallCreated"] = "Zal yaradıldı",
-            ["HallUpdated"] = "Zal yeniləndi",
-            ["HallDeleted"] = "Zal silindi",
-            ["HallAvailabilityChanged"] = "Zal təqvimi dəyişdi",
-            ["MenuCreated"] = "Menyu yaradıldı",
-            ["MenuUpdated"] = "Menyu yeniləndi",
-            ["MenuDeleted"] = "Menyu silindi",
-            ["ReservationCreated"] = "Rezerv sorğusu",
-            ["ReservationStatusChanged"] = "Rezerv statusu dəyişdi",
-            ["ReservationCancelled"] = "Rezerv ləğv edildi",
-            ["ReviewCreated"] = "Rəy yazıldı",
-            ["ReviewUpdated"] = "Rəy redaktə edildi",
-            ["ReviewDeleted"] = "Rəy silindi",
-            ["ReservationStatusChangedByAdmin"] = "Rezerv statusunu admin dəyişdi",
-            ["SettingChanged"] = "Platforma parametri dəyişdi",
-            ["DataRowCreated"] = "Bazaya sətir əlavə edildi",
-            ["DataRowUpdated"] = "Bazada sətir dəyişdirildi",
-            ["DataRowDeleted"] = "Bazadan sətir silindi",
-            ["DataRowRestored"] = "Silinmiş sətir geri qaytarıldı",
-            ["UserRestored"] = "Silinmiş hesab geri qaytarıldı",
-            ["VenueRestored"] = "Silinmiş saray geri qaytarıldı",
-            ["ReservationRestored"] = "Silinmiş rezerv geri qaytarıldı",
-            ["ReviewRestored"] = "Silinmiş rəy geri qaytarıldı",
-            ["ReviewEditedByAdmin"] = "Rəyi admin düzəltdi",
-            ["UserCreatedByAdmin"] = "Hesab admin tərəfindən yaradıldı",
-            ["UserUpdatedByAdmin"] = "Hesab məlumatları yeniləndi",
-            ["UserDeleted"] = "Hesab silindi",
-            ["VenueUnapproved"] = "Sarayın təsdiqi geri alındı",
-            ["VenueOwnerChanged"] = "Sarayın sahibi dəyişdi",
-            ["CityRenamed"] = "Şəhər adı dəyişdi",
-            ["FeatureRenamed"] = "Özəllik adı dəyişdi",
-            ["FeatureDeleted"] = "Özəllik silindi",
-            ["ReviewReported"] = "Rəy şikayət edildi",
-            ["ReviewModerated"] = "Rəyin görünüşü dəyişdi",
-            ["ReviewHidden"] = "Rəy gizlədildi",
-            ["ReviewShown"] = "Rəy yenidən göstərildi",
-            ["ReviewReportsResolved"] = "Şikayətlər bağlandı",
-            ["ReviewDeletedByAdmin"] = "Rəy admin tərəfindən silindi",
-            ["FavoriteToggled"] = "Seçilmişlər dəyişdi",
-            ["StaffCreated"] = "Administrator əlavə edildi",
-            ["StaffUpdated"] = "Administrator yeniləndi",
-            ["StaffActivationChanged"] = "Administratorun girişi dəyişdi",
-            ["StaffHallsChanged"] = "Administratorun zalları dəyişdi",
-            ["StaffPasswordReset"] = "Administratorun parolu sıfırlandı",
-            ["StaffDeleted"] = "Administrator silindi",
-            ["UserRoleChanged"] = "İstifadəçinin rolu dəyişdi",
-            ["AdminViewedUsers"] = "İstifadəçi siyahısına baxış",
-            ["AdminViewedUser"] = "İstifadəçi kartına baxış",
-            ["UserBlocked"] = "İstifadəçi bloklandı",
-            ["UserUnblocked"] = "İstifadəçinin bloku götürüldü",
-            ["UserPasswordReset"] = "Parol admin tərəfindən sıfırlandı",
-            ["BlockedLoginAttempt"] = "Bloklanmış hesabla giriş cəhdi",
-            ["AdminViewedStats"] = "Göstəricilərə baxış",
-            ["AuditViewed"] = "Jurnala baxış",
-        };
-
-        public static string Describe(string code) => Map.TryGetValue(code, out var label) ? label : code;
     }
 }

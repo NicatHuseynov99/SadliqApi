@@ -24,6 +24,9 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
         public DbSet<ReviewEdit> ReviewEdits => Set<ReviewEdit>();
         public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
+        public DbSet<City> Cities => Set<City>();
+        public DbSet<Feature> Features => Set<Feature>();
+        public DbSet<AppText> AppTexts => Set<AppText>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
@@ -223,6 +226,16 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
 
             // Parametr açarı təkrarlana bilməz
             b.Entity<PlatformSetting>().HasIndex(s => s.Key).IsUnique();
+
+            // Kitabçalarda eyni ad iki dəfə olmamalıdır
+            b.Entity<City>().HasIndex(c => c.Name).IsUnique();
+            b.Entity<Feature>().HasIndex(f => f.Name).IsUnique();
+
+            b.Entity<City>().HasQueryFilter(c => !c.IsDeleted);
+            b.Entity<Feature>().HasQueryFilter(f => !f.IsDeleted);
+
+            // Mətn açarı kateqoriya daxilində unikaldır
+            b.Entity<AppText>().HasIndex(t => new { t.Category, t.Key }).IsUnique();
 
             // Şəhər və özəllik adları mətn olduğu üçün süzgəc sorğuları indeks istəyir
             b.Entity<Venue>().HasIndex(v => v.City);
