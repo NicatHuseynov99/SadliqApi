@@ -25,6 +25,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
         public DbSet<VenueStaffHall> VenueStaffHalls => Set<VenueStaffHall>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<PageView> PageViews => Set<PageView>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -78,6 +79,17 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<AuditLog>().HasIndex(a => a.UserId);
             b.Entity<AuditLog>().HasIndex(a => a.VenueId);
             b.Entity<AuditLog>().HasIndex(a => a.Action);
+
+            // Ziyarət hesabatları tarix, sessiya və saray üzrə qruplaşdırılır
+            b.Entity<PageView>().HasIndex(p => p.CreatedAt);
+            b.Entity<PageView>().HasIndex(p => p.SessionId);
+            b.Entity<PageView>().HasIndex(p => p.VenueId);
+
+            // İstifadəçi silinsə, ziyarət tarixçəsi qonaq baxışı kimi qalır
+            b.Entity<PageView>()
+                .HasOne(p => p.User).WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Token axtarışı hash üzrə gedir
             b.Entity<PasswordResetToken>()

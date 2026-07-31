@@ -3,6 +3,7 @@ using Business.Concrete;
 using Business.Security.Jwt;
 using Business.Utilities.Email;
 using SadliqApi.Audit;
+using SadliqApi.Visits;
 using Core.Utilities.Security.Encryption;
 using DataAccess.Abstract;
 using DataAccess.Concrete;
@@ -77,6 +78,7 @@ builder.Services.AddScoped<IVenueStaffDal, EfVenueStaffDal>();
 builder.Services.AddScoped<IVenueFeatureDal, EfVenueFeatureDal>();
 builder.Services.AddScoped<IVenueStaffHallDal, EfVenueStaffHallDal>();
 builder.Services.AddScoped<IAuditLogDal, EfAuditLogDal>();
+builder.Services.AddScoped<IPageViewDal, EfPageViewDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -91,11 +93,17 @@ builder.Services.AddScoped<IVenueAccessService, VenueAccessManager>();
 builder.Services.AddScoped<IVenueStaffService, VenueStaffManager>();
 builder.Services.AddScoped<IAdminService, AdminManager>();
 builder.Services.AddScoped<IAuditService, AuditManager>();
+builder.Services.AddScoped<IVisitService, VisitManager>();
 
 // Fəaliyyət jurnalı: kontekst sorğu boyunca yaşayır, yazı isə arxa fonda gedir
 builder.Services.AddScoped<IAuditContext, AuditContext>();
 builder.Services.AddSingleton<IAuditWriter, AuditWriter>();
 builder.Services.AddHostedService<AuditBackgroundService>();
+
+// Ziyarətçi statistikası: yazı arxa fonda, köhnə qeydlər gündə bir dəfə təmizlənir
+builder.Services.AddSingleton<IVisitWriter, VisitWriter>();
+builder.Services.AddHostedService<VisitBackgroundService>();
+builder.Services.AddHostedService<VisitCleanupService>();
 
 // E-poçt: SMTP konfiqurasiya olunmayıbsa məktublar log-a yazılır
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailOptions"));

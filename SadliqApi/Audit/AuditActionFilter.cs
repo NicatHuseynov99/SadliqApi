@@ -20,6 +20,10 @@ namespace SadliqApi.Audit
         // Oxuma sorğularından yalnız bunlar yazılır — qalanları jurnalı doldurardı
         private static readonly string[] LoggedReadControllers = { "Admin", "Audit" };
 
+        // Ziyarət qeydiyyatı hər səhifə açılışında gedir — jurnala düşsə,
+        // jurnal ziyarət statistikasına çevrilər
+        private static readonly string[] SkippedControllers = { "Visits" };
+
         private readonly IAuditWriter _writer;
         private readonly IAuditContext _auditContext;
 
@@ -36,8 +40,9 @@ namespace SadliqApi.Audit
             var controller = context.RouteData.Values["controller"]?.ToString() ?? string.Empty;
             var action = context.RouteData.Values["action"]?.ToString() ?? string.Empty;
 
-            var shouldLog = method is "POST" or "PUT" or "DELETE"
-                            || LoggedReadControllers.Contains(controller);
+            var shouldLog = !SkippedControllers.Contains(controller)
+                            && (method is "POST" or "PUT" or "DELETE"
+                                || LoggedReadControllers.Contains(controller));
 
             // Sorğunun gövdəsini həssas sahələr gizlədilmiş halda saxlayırıq
             var payload = shouldLog ? BuildPayload(context.ActionArguments) : null;
