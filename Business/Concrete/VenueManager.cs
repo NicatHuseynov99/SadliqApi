@@ -15,15 +15,18 @@ namespace Business.Concrete
         private readonly IVenueFeatureDal _featureDal;
         private readonly IVenueImageDal _imageDal;
         private readonly IAuditContext _audit;
+        private readonly IPlatformSettingsService _settings;
 
         public VenueManager(
             IVenueDal venueDal,
             IVenueAccessService access,
             IVenueFeatureDal featureDal,
             IVenueImageDal imageDal,
-            IAuditContext audit)
+            IAuditContext audit,
+            IPlatformSettingsService settings)
         {
             _audit = audit;
+            _settings = settings;
             _venueDal = venueDal;
             _access = access;
             _featureDal = featureDal;
@@ -146,12 +149,15 @@ namespace Business.Concrete
                 .OrderByDescending(o => o.Count)
                 .ToListAsync();
 
-            // Yalnız ən azı 5 sarayda olan özəlliklər — tək-tük olanlar filtr kimi mənasızdır
+            // Az sarayda olan özəlliklər filtr kimi mənasızdır. Həddi admin paneldən
+            // dəyişmək olar — ona görə sabit yazmırıq.
+            var minCount = await _settings.GetIntAsync("feature_filter_min_count", 5);
+
             var features = await query
                 .SelectMany(v => v.Features)
                 .GroupBy(f => f.Name)
                 .Select(g => new FilterOption { Name = g.Key, Count = g.Count() })
-                .Where(o => o.Count >= 5)
+                .Where(o => o.Count >= minCount)
                 .OrderByDescending(o => o.Count)
                 .ToListAsync();
 

@@ -12,12 +12,18 @@ namespace Business.Concrete
         private readonly IReviewDal _reviewDal;
         private readonly IVenueDal _venueDal;
         private readonly IReviewReportDal _reportDal;
+        private readonly IPlatformSettingsService _settings;
 
-        public ReviewManager(IReviewDal reviewDal, IVenueDal venueDal, IReviewReportDal reportDal)
+        public ReviewManager(
+            IReviewDal reviewDal,
+            IVenueDal venueDal,
+            IReviewReportDal reportDal,
+            IPlatformSettingsService settings)
         {
             _reviewDal = reviewDal;
             _venueDal = venueDal;
             _reportDal = reportDal;
+            _settings = settings;
         }
 
         // Sarayın bütün rəyləri — yenilər yuxarıda
@@ -121,9 +127,24 @@ namespace Business.Concrete
 
             // Sayğac moderasiya siyahısında sıralama üçün saxlanılır
             review.ReportCount += 1;
+
+            // Həddi keçəndə rəy moderator baxana qədər avtomatik gizlədilir.
+            // Hədd 0 olanda bu davranış söndürülüb.
+            var threshold = await _settings.GetIntAsync("review_auto_hide_reports", 0);
+            var autoHidden = threshold > 0 && !review.IsHidden && review.ReportCount >= threshold;
+
+            if (autoHidden)
+            {
+                review.IsHidden = true;
+                review.HiddenReason = $"Avtomatik: {review.ReportCount} şikayət";
+                review.HiddenAt = DateTime.UtcNow;
+            }
+
             await _reviewDal.UpdateAsync(review);
 
-            return new SuccessResult("Şikayətiniz moderatora göndərildi.");
+            return new SuccessResult(autoHidden
+                ? "Şikayətiniz qeydə alındı, rəy yoxlanana qədər gizlədildi."
+                : "Şikayətiniz moderatora göndərildi.");
         }
 
         private static readonly string[] AllowedReasons = { "spam", "offensive", "fake", "irrelevant", "other" };

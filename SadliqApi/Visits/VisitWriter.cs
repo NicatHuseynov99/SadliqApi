@@ -56,11 +56,11 @@ namespace SadliqApi.Visits
         }
     }
 
-    // IP ünvanı şəxsi məlumatdır — 90 gündən köhnə ziyarət qeydləri silinir.
-    // Gündə bir dəfə işə düşür.
+    // IP ünvanı şəxsi məlumatdır — köhnə ziyarət qeydləri silinir. Saxlanma müddəti
+    // admin paneldən tənzimlənir (ilkin 90 gün). Gündə bir dəfə işə düşür.
     public class VisitCleanupService : BackgroundService
     {
-        private const int RetentionDays = 90;
+        private const int DefaultRetentionDays = 90;
 
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<VisitCleanupService> _logger;
@@ -81,7 +81,10 @@ namespace SadliqApi.Visits
                     var context = scope.ServiceProvider
                         .GetRequiredService<DataAccess.Concrete.EntityFramework.Contexts.SadliqDbContext>();
 
-                    var limit = DateTime.UtcNow.AddDays(-RetentionDays);
+                    var settings = scope.ServiceProvider.GetRequiredService<IPlatformSettingsService>();
+                    var retentionDays = await settings.GetIntAsync("visit_retention_days", DefaultRetentionDays);
+
+                    var limit = DateTime.UtcNow.AddDays(-retentionDays);
                     var removed = await context.PageViews
                         .Where(p => p.CreatedAt < limit)
                         .ExecuteDeleteAsync(stoppingToken);

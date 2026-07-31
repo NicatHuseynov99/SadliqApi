@@ -43,6 +43,12 @@ namespace SadliqApi.Audit
             ["Reviews.Report"] = ("ReviewReported", "rəyi şikayət etdi"),
             ["Favorites.Toggle"] = ("FavoriteToggled", "seçilmişlər siyahısını dəyişdi"),
 
+            // Parametrlər və kitabçalar
+            ["Platform.UpdateSetting"] = ("SettingChanged", "platforma parametrini dəyişdi"),
+            ["Platform.RenameCity"] = ("CityRenamed", "şəhər adını dəyişdi"),
+            ["Platform.RenameFeature"] = ("FeatureRenamed", "özəllik adını dəyişdi"),
+            ["Platform.DeleteFeature"] = ("FeatureDeleted", "özəlliyi siyahıdan sildi"),
+
             // Platforma üzrə rezervlər
             ["AdminReservations.UpdateStatus"] = ("ReservationStatusChangedByAdmin", "rezervin statusunu admin olaraq dəyişdi"),
 

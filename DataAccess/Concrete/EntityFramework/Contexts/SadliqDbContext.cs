@@ -21,6 +21,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
+        public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
@@ -127,6 +128,13 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .IsUnique();
 
             b.Entity<Review>().HasIndex(r => r.IsHidden);
+
+            // Parametr açarı təkrarlana bilməz
+            b.Entity<PlatformSetting>().HasIndex(s => s.Key).IsUnique();
+
+            // Şəhər və özəllik adları mətn olduğu üçün süzgəc sorğuları indeks istəyir
+            b.Entity<Venue>().HasIndex(v => v.City);
+            b.Entity<VenueFeature>().HasIndex(f => f.Name);
 
             base.OnModelCreating(b);
         }

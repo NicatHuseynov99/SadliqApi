@@ -14,18 +14,25 @@ namespace Business.Concrete
     {
         private readonly IReservationDal _reservationDal;
         private readonly IVenueDal _venueDal;
+        private readonly IPlatformSettingsService _settings;
 
-        public AdminReservationManager(IReservationDal reservationDal, IVenueDal venueDal)
+        public AdminReservationManager(
+            IReservationDal reservationDal,
+            IVenueDal venueDal,
+            IPlatformSettingsService settings)
         {
             _reservationDal = reservationDal;
             _venueDal = venueDal;
+            _settings = settings;
         }
 
         public async Task<IDataResult<AdminReservationStatsDto>> GetStatsAsync()
         {
             var all = await _reservationDal.GetListAsync();
             var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
-            var staleBefore = DateTime.UtcNow.AddDays(-3);
+            // «Gecikən» sayılma həddi admin paneldən tənzimlənir
+            var staleDays = await _settings.GetIntAsync("stale_pending_days", 3);
+            var staleBefore = DateTime.UtcNow.AddDays(-staleDays);
 
             var stats = new AdminReservationStatsDto
             {
