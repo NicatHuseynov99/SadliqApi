@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Entities.Concrete
 {
-    public class User : IEntity
+    public class User : IEntity, ISoftDelete
     {
         public int Id { get; set; }
         public string FirstName { get; set; } = string.Empty;
@@ -29,5 +29,9 @@ namespace Entities.Concrete
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

@@ -25,10 +25,22 @@ namespace Core.DataAccess.EntityFramework
             await _context.SaveChangesAsync();
         }
 
-        // Marks entity as deleted and saves changes to the database
+        // Silmə tələbi. ISoftDelete olan sətirlər bazadan çıxarılmır — yalnız
+        // işarələnir, beləliklə tarixçə qalır və geri qaytarmaq mümkün olur.
+        // Qalanları (əlaqə cədvəlləri kimi) həqiqətən silinir.
         public async Task DeleteAsync(TEntity entity)
         {
-            _context.Entry(entity).State = EntityState.Deleted;
+            if (entity is ISoftDelete soft)
+            {
+                soft.IsDeleted = true;
+                soft.DeletedAt = DateTime.UtcNow;
+                _context.Entry(entity).State = EntityState.Modified;
+            }
+            else
+            {
+                _context.Entry(entity).State = EntityState.Deleted;
+            }
+
             await _context.SaveChangesAsync();
         }
 

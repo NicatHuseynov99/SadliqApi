@@ -81,6 +81,7 @@ builder.Services.AddScoped<IAuditLogDal, EfAuditLogDal>();
 builder.Services.AddScoped<IPageViewDal, EfPageViewDal>();
 builder.Services.AddScoped<IReviewReportDal, EfReviewReportDal>();
 builder.Services.AddScoped<IPlatformSettingDal, EfPlatformSettingDal>();
+builder.Services.AddScoped<IReviewEditDal, EfReviewEditDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -100,6 +101,7 @@ builder.Services.AddScoped<IReviewModerationService, ReviewModerationManager>();
 builder.Services.AddScoped<IAdminReservationService, AdminReservationManager>();
 builder.Services.AddScoped<IPlatformSettingsService, PlatformSettingsManager>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
+builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
 
 // Fəaliyyət jurnalı: kontekst sorğu boyunca yaşayır, yazı isə arxa fonda gedir
 builder.Services.AddScoped<IAuditContext, AuditContext>();

@@ -54,6 +54,7 @@ namespace SadliqApi.Audit
 
             // Rəy moderasiyası
             ["ReviewModeration.SetHidden"] = ("ReviewModerated", "rəyin görünüşünü dəyişdi"),
+            ["ReviewModeration.Update"] = ("ReviewEditedByAdmin", "rəyin mətnini admin olaraq düzəltdi"),
             ["ReviewModeration.ResolveReports"] = ("ReviewReportsResolved", "rəyin şikayətlərini bağladı"),
             ["ReviewModeration.Delete"] = ("ReviewDeletedByAdmin", "rəyi tamamilə sildi"),
 
@@ -75,6 +76,10 @@ namespace SadliqApi.Audit
             ["Admin.CreateUser"] = ("UserCreatedByAdmin", "yeni hesab yaratdı"),
             ["Admin.UpdateUser"] = ("UserUpdatedByAdmin", "hesabın məlumatlarını yenilədi"),
             ["Admin.DeleteUser"] = ("UserDeleted", "hesabı sildi"),
+            ["Admin.RestoreUser"] = ("UserRestored", "silinmiş hesabı geri qaytardı"),
+            ["AdminVenues.Restore"] = ("VenueRestored", "silinmiş sarayı geri qaytardı"),
+            ["AdminReservations.Restore"] = ("ReservationRestored", "silinmiş rezervi geri qaytardı"),
+            ["ReviewModeration.Restore"] = ("ReviewRestored", "silinmiş rəyi geri qaytardı"),
             ["AdminVenues.SetApproved"] = ("VenueApproved", "sarayın təsdiq vəziyyətini dəyişdi"),
             ["AdminVenues.ChangeOwner"] = ("VenueOwnerChanged", "sarayı başqa sahibə keçirdi"),
             ["AdminVenues.Delete"] = ("VenueDeleted", "sarayı sildi"),

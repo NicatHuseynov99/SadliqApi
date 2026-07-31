@@ -37,6 +37,15 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        [HttpPut("{reservationId}")]
+        public async Task<IActionResult> Restore(int reservationId)
+        {
+            var result = await _adminReservations.RestoreAsync(reservationId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // Mübahisəli hallarda admin sahibin yerinə qərar verir
         [HttpPut("{reservationId}")]
         public async Task<IActionResult> UpdateStatus(int reservationId, [FromBody] UpdateReservationStatusDto dto)

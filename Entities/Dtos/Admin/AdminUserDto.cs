@@ -13,6 +13,10 @@ namespace Entities.Dtos.Admin
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
 
+        // Silinmiş hesab saytda işləmir, amma admin onu görür və geri qaytara bilir
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+
         // Sahibdirsə neçə sarayı var
         public int VenueCount { get; set; }
     }

@@ -7,7 +7,7 @@ namespace Entities.Dtos.Venue
         public string? Q { get; set; }
         public string? City { get; set; }
 
-        // all | approved | pending
+        // all | approved | pending | deleted
         public string? Status { get; set; }
         public int? OwnerId { get; set; }
 
@@ -32,6 +32,10 @@ namespace Entities.Dtos.Venue
         public List<string> Features { get; set; } = new();
         public bool IsApproved { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Silinmiş saray saytda görünmür, amma admin onu görür və geri qaytara bilir
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
 
         public int OwnerId { get; set; }
         public string OwnerName { get; set; } = string.Empty;

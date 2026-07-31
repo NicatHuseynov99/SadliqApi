@@ -1,4 +1,5 @@
 using Business.Abstract;
+using Entities.Concrete;
 using Entities.Dtos.Review;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,10 +28,25 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Baxanın rolu: düzəliş nişanı yalnız platforma sahibinə göndərilir
+        private UserRole ViewerRole =>
+            Enum.TryParse<UserRole>(User.FindFirstValue(ClaimTypes.Role), true, out var role)
+                ? role
+                : UserRole.Support;
+
         [HttpGet]
         public async Task<IActionResult> Search([FromQuery] ReviewSearchDto dto)
         {
-            var result = await _service.SearchAsync(dto);
+            var result = await _service.SearchAsync(dto, ViewerRole);
+            return Ok(result);
+        }
+
+        // Düzəliş tarixçəsi yalnız SuperAdmin üçündür
+        [HttpGet("{reviewId}")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> GetEdits(int reviewId)
+        {
+            var result = await _service.GetEditsAsync(reviewId);
             return Ok(result);
         }
 
@@ -55,6 +71,27 @@ namespace SadliqApi.Controllers
         public async Task<IActionResult> ResolveReports(int reviewId)
         {
             var result = await _service.ResolveReportsAsync(reviewId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{reviewId}")]
+        public async Task<IActionResult> Update(int reviewId, [FromBody] EditReviewDto dto)
+        {
+            var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var adminName = User.FindFirstValue(ClaimTypes.Name) ?? "Admin";
+
+            var result = await _service.UpdateAsync(reviewId, dto, adminId, adminName, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{reviewId}")]
+        public async Task<IActionResult> Restore(int reviewId)
+        {
+            var result = await _service.RestoreAsync(reviewId);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

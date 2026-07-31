@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // zallar
-    public class Hall : IEntity
+    public class Hall : IEntity, ISoftDelete
     {
         public int Id { get; set; }
         public int VenueId { get; set; }
@@ -16,5 +16,9 @@ namespace Entities.Concrete
 
         public ICollection<HallMedia> Media { get; set; } = new List<HallMedia>();
         public ICollection<HallAvailability> Availability { get; set; } = new List<HallAvailability>();
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

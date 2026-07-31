@@ -22,5 +22,6 @@ namespace Business.Abstract
 
         // Hesabın tamamilə silinməsi — bağlı məlumatı olan hesab silinmir
         Task<IResult> DeleteUserAsync(int userId, int currentAdminId, UserRole viewerRole);
+        Task<IResult> RestoreUserAsync(int userId, UserRole viewerRole);
     }
 }

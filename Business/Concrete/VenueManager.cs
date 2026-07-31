@@ -309,9 +309,13 @@ namespace Business.Concrete
         // Owner öz sarayını silir
         public async Task<IResult> DeleteAsync(int id, int ownerId)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == id && v.OwnerId == ownerId);
+            var venue = await _venueDal.GetAsync(v => v.Id == id);
             if (venue is null)
-                return new ErrorResult("Saray tapılmadı və ya sizə aid deyil.");
+                return new ErrorResult("Saray tapılmadı.");
+
+            // Sahiblik yoxlaması mərkəzi servisdədir — admin bütün saraylara çıxışlıdır
+            if (!await _access.IsOwnerAsync(id, ownerId))
+                return new ErrorResult("Bu saray sizə aid deyil.");
 
             _audit.Set("VenueDeleted", $"«{venue.Name}» sarayını sildi", "Venue", venue.Id, venue.Id);
 

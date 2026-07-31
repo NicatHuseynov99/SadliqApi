@@ -47,6 +47,15 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        [HttpPut("{venueId}")]
+        public async Task<IActionResult> Restore(int venueId)
+        {
+            var result = await _adminVenues.RestoreAsync(venueId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // Sarayı silmək: admin bütün saraylara sahib səlahiyyəti ilə çıxdığı üçün
         // adi silmə axını işləyir, bütün yoxlamalar orada qalır
         [HttpDelete("{venueId}")]

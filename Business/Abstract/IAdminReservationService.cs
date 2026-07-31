@@ -9,5 +9,8 @@ namespace Business.Abstract
     {
         Task<IDataResult<AdminReservationStatsDto>> GetStatsAsync();
         Task<IDataResult<PagedResult<AdminReservationDto>>> SearchAsync(AdminReservationSearchDto dto);
+
+        // Silinmiş rezervi geri qaytarmaq
+        Task<IResult> RestoreAsync(int reservationId);
     }
 }

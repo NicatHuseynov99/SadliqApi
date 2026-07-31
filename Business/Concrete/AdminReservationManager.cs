@@ -78,13 +78,18 @@ namespace Business.Concrete
 
         public async Task<IDataResult<PagedResult<AdminReservationDto>>> SearchAsync(AdminReservationSearchDto dto)
         {
-            var query = await _reservationDal.GetListAsync();
+            // Admin silinmiş rezervləri də görə bilməlidir
+            var query = (await _reservationDal.GetListAsync()).IgnoreQueryFilters();
             var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+
+            query = dto.Status == "Deleted"
+                ? query.Where(r => r.IsDeleted)
+                : query.Where(r => !r.IsDeleted);
 
             if (dto.VenueId.HasValue)
                 query = query.Where(r => r.VenueId == dto.VenueId.Value);
 
-            if (!string.IsNullOrWhiteSpace(dto.Status)
+            if (!string.IsNullOrWhiteSpace(dto.Status) && dto.Status != "Deleted"
                 && Enum.TryParse<ReservationStatus>(dto.Status, true, out var status))
                 query = query.Where(r => r.Status == status);
 
@@ -134,6 +139,8 @@ namespace Business.Concrete
                 Id = r.Id,
                 VenueId = r.VenueId,
                 VenueName = r.Venue?.Name ?? "—",
+                VenueImageUrl = r.Venue?.CoverImageUrl,
+                City = r.Venue?.City ?? string.Empty,
                 HallName = r.Hall?.Name ?? "—",
                 MenuName = r.Menu?.Name ?? "—",
                 CustomerId = r.CustomerId,
@@ -146,7 +153,9 @@ namespace Business.Concrete
                 Status = r.Status,
                 StatusLabel = StatusLabel(r.Status),
                 CreatedAt = r.CreatedAt,
-                IsPast = r.EventDate < today
+                IsPast = r.EventDate < today,
+                IsDeleted = r.IsDeleted,
+                DeletedAt = r.DeletedAt
             }).ToList();
 
             var result = new PagedResult<AdminReservationDto>
@@ -158,6 +167,24 @@ namespace Business.Concrete
             };
 
             return new SuccessDataResult<PagedResult<AdminReservationDto>>(result);
+        }
+
+        public async Task<IResult> RestoreAsync(int reservationId)
+        {
+            var query = (await _reservationDal.GetListAsync()).IgnoreQueryFilters();
+            var reservation = await query.FirstOrDefaultAsync(r => r.Id == reservationId);
+
+            if (reservation is null)
+                return new ErrorResult("Rezerv tapılmadı.");
+
+            if (!reservation.IsDeleted)
+                return new ErrorResult("Bu rezerv silinməyib.");
+
+            reservation.IsDeleted = false;
+            reservation.DeletedAt = null;
+            await _reservationDal.UpdateAsync(reservation);
+
+            return new SuccessResult("Rezerv geri qaytarıldı.");
         }
 
         private static string StatusLabel(ReservationStatus status) => status switch

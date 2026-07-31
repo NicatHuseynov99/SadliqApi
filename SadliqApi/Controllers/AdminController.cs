@@ -97,6 +97,15 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> RestoreUser(int userId)
+        {
+            var result = await _adminService.RestoreUserAsync(userId, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         [HttpDelete("{userId}")]
         public async Task<IActionResult> DeleteUser(int userId)
         {

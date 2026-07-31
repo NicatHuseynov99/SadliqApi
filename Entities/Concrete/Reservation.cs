@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // rezerv sorğuları
-    public class Reservation : IEntity
+    public class Reservation : IEntity, ISoftDelete
     {
         public int Id { get; set; }
 
@@ -25,5 +25,9 @@ namespace Entities.Concrete
         public string? Note { get; set; }
         public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

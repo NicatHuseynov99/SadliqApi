@@ -16,5 +16,8 @@ namespace Business.Abstract
 
         // Sarayı başqa sahibə keçirmək
         Task<IResult> ChangeOwnerAsync(int venueId, ChangeVenueOwnerDto dto);
+
+        // Silinmiş sarayı zalları və menyuları ilə birlikdə geri qaytarmaq
+        Task<IResult> RestoreAsync(int venueId);
     }
 }

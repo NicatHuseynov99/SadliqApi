@@ -102,10 +102,12 @@ namespace Business.Concrete
             return new SuccessDataResult<AuditFilterOptionsDto>(options);
         }
 
+        // Rəy düzəlişinin izi də yalnız platforma sahibinə görünür — dəstək admini
+        // öz düzəlişinin jurnalda qeyd olunduğunu görməməlidir.
         private static IQueryable<AuditLog> ApplyVisibility(IQueryable<AuditLog> query, UserRole viewerRole) =>
             viewerRole == UserRole.SuperAdmin
                 ? query
-                : query.Where(a => a.UserRole != UserRole.SuperAdmin);
+                : query.Where(a => a.UserRole != UserRole.SuperAdmin && a.Action != "ReviewEditedByAdmin");
     }
 
     // Əməliyyat kodlarının Azərbaycanca adları (süzgəc siyahısı üçün)
@@ -138,6 +140,15 @@ namespace Business.Concrete
             ["ReviewDeleted"] = "Rəy silindi",
             ["ReservationStatusChangedByAdmin"] = "Rezerv statusunu admin dəyişdi",
             ["SettingChanged"] = "Platforma parametri dəyişdi",
+            ["DataRowCreated"] = "Bazaya sətir əlavə edildi",
+            ["DataRowUpdated"] = "Bazada sətir dəyişdirildi",
+            ["DataRowDeleted"] = "Bazadan sətir silindi",
+            ["DataRowRestored"] = "Silinmiş sətir geri qaytarıldı",
+            ["UserRestored"] = "Silinmiş hesab geri qaytarıldı",
+            ["VenueRestored"] = "Silinmiş saray geri qaytarıldı",
+            ["ReservationRestored"] = "Silinmiş rezerv geri qaytarıldı",
+            ["ReviewRestored"] = "Silinmiş rəy geri qaytarıldı",
+            ["ReviewEditedByAdmin"] = "Rəyi admin düzəltdi",
             ["UserCreatedByAdmin"] = "Hesab admin tərəfindən yaradıldı",
             ["UserUpdatedByAdmin"] = "Hesab məlumatları yeniləndi",
             ["UserDeleted"] = "Hesab silindi",

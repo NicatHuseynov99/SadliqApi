@@ -15,12 +15,18 @@ namespace Business.Concrete
         private readonly IReviewDal _reviewDal;
         private readonly IReviewReportDal _reportDal;
         private readonly IVenueDal _venueDal;
+        private readonly IReviewEditDal _editDal;
 
-        public ReviewModerationManager(IReviewDal reviewDal, IReviewReportDal reportDal, IVenueDal venueDal)
+        public ReviewModerationManager(
+            IReviewDal reviewDal,
+            IReviewReportDal reportDal,
+            IVenueDal venueDal,
+            IReviewEditDal editDal)
         {
             _reviewDal = reviewDal;
             _reportDal = reportDal;
             _venueDal = venueDal;
+            _editDal = editDal;
         }
 
         public async Task<IDataResult<ReviewModerationStatsDto>> GetStatsAsync()
@@ -43,7 +49,7 @@ namespace Business.Concrete
             return new SuccessDataResult<ReviewModerationStatsDto>(stats);
         }
 
-        public async Task<IDataResult<PagedResult<AdminReviewDto>>> SearchAsync(ReviewSearchDto dto)
+        public async Task<IDataResult<PagedResult<AdminReviewDto>>> SearchAsync(ReviewSearchDto dto, UserRole viewerRole)
         {
             var query = (await _reviewDal.GetListAsync()).IgnoreQueryFilters();
 
@@ -55,10 +61,11 @@ namespace Business.Concrete
 
             query = dto.Status switch
             {
-                "hidden" => query.Where(r => r.IsHidden),
-                "visible" => query.Where(r => !r.IsHidden),
-                "reported" => query.Where(r => r.ReportCount > 0),
-                _ => query
+                "hidden" => query.Where(r => !r.IsDeleted && r.IsHidden),
+                "visible" => query.Where(r => !r.IsDeleted && !r.IsHidden),
+                "reported" => query.Where(r => !r.IsDeleted && r.ReportCount > 0),
+                "deleted" => query.Where(r => r.IsDeleted),
+                _ => query.Where(r => !r.IsDeleted)
             };
 
             if (!string.IsNullOrWhiteSpace(dto.Q))
@@ -83,9 +90,12 @@ namespace Business.Concrete
                 .ToListAsync();
 
             var venueIds = rows.Select(r => r.VenueId).Distinct().ToList();
-            var venueNames = await (await _venueDal.GetListAsync(v => venueIds.Contains(v.Id)))
-                .Select(v => new { v.Id, v.Name })
-                .ToDictionaryAsync(v => v.Id, v => v.Name);
+
+            // Silinmiş sarayın rəyi də paneldə görünə bilər — filtri söndürürük
+            var venues = await (await _venueDal.GetListAsync(v => venueIds.Contains(v.Id)))
+                .IgnoreQueryFilters()
+                .Select(v => new { v.Id, v.Name, v.City, v.CoverImageUrl })
+                .ToListAsync();
 
             var reviewIds = rows.Select(r => r.Id).ToList();
             var openReports = await (await _reportDal.GetListAsync(r => reviewIds.Contains(r.ReviewId) && !r.IsResolved))
@@ -93,21 +103,58 @@ namespace Business.Concrete
                 .Select(g => new { ReviewId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(g => g.ReviewId, g => g.Count);
 
-            var items = rows.Select(r => new AdminReviewDto
+            // Düzəliş tarixçəsi yalnız platforma sahibinə göndərilir.
+            // Dəstək admini nə nişanı, nə də köhnə mətni görür.
+            var edits = viewerRole == UserRole.SuperAdmin
+                ? await (await _editDal.GetListAsync(e => reviewIds.Contains(e.ReviewId)))
+                    .GroupBy(e => e.ReviewId)
+                    .Select(g => new
+                    {
+                        ReviewId = g.Key,
+                        Count = g.Count(),
+                        LastAt = g.Max(e => e.CreatedAt)
+                    })
+                    .ToListAsync()
+                : null;
+
+            var lastEditors = viewerRole == UserRole.SuperAdmin
+                ? await (await _editDal.GetListAsync(e => reviewIds.Contains(e.ReviewId)))
+                    .Select(e => new { e.ReviewId, e.EditedByName, e.CreatedAt })
+                    .ToListAsync()
+                : null;
+
+            var items = rows.Select(r =>
             {
-                Id = r.Id,
-                VenueId = r.VenueId,
-                VenueName = venueNames.TryGetValue(r.VenueId, out var name) ? name : "—",
-                CustomerId = r.CustomerId,
-                AuthorName = r.AuthorName,
-                Rating = r.Rating,
-                Comment = r.Comment,
-                CreatedAt = r.CreatedAt,
-                IsHidden = r.IsHidden,
-                HiddenReason = r.HiddenReason,
-                HiddenAt = r.HiddenAt,
-                ReportCount = r.ReportCount,
-                OpenReportCount = openReports.TryGetValue(r.Id, out var open) ? open : 0
+                var venue = venues.FirstOrDefault(v => v.Id == r.VenueId);
+                var edit = edits?.FirstOrDefault(e => e.ReviewId == r.Id);
+                var lastEditor = lastEditors?
+                    .Where(e => e.ReviewId == r.Id)
+                    .OrderByDescending(e => e.CreatedAt)
+                    .FirstOrDefault();
+
+                return new AdminReviewDto
+                {
+                    Id = r.Id,
+                    VenueId = r.VenueId,
+                    VenueName = venue?.Name ?? "—",
+                    VenueCity = venue?.City ?? string.Empty,
+                    VenueImageUrl = venue?.CoverImageUrl,
+                    CustomerId = r.CustomerId,
+                    AuthorName = r.AuthorName,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    CreatedAt = r.CreatedAt,
+                    IsHidden = r.IsHidden,
+                    HiddenReason = r.HiddenReason,
+                    HiddenAt = r.HiddenAt,
+                    ReportCount = r.ReportCount,
+                    OpenReportCount = openReports.TryGetValue(r.Id, out var open) ? open : 0,
+                    IsDeleted = r.IsDeleted,
+                    DeletedAt = r.DeletedAt,
+                    EditCount = edit?.Count ?? 0,
+                    LastEditedBy = lastEditor?.EditedByName,
+                    LastEditedAt = edit?.LastAt
+                };
             }).ToList();
 
             var result = new PagedResult<AdminReviewDto>
@@ -178,9 +225,90 @@ namespace Business.Concrete
             if (review is null)
                 return new ErrorResult("Rəy tapılmadı.");
 
-            // Şikayətlər kaskadla silinir (DbContext-də təyin olunub)
+            // Silinmiş kimi işarələnir — «Silinmiş» süzgəcindən geri qaytarmaq olar
             await _reviewDal.DeleteAsync(review);
-            return new SuccessResult("Rəy tamamilə silindi.");
+            return new SuccessResult("Rəy silindi (geri qaytarmaq olar).");
+        }
+
+        // Admin rəyin mətnini və balını düzəldir. Tam silmək əvəzinə bəzən sadəcə
+        // şəxsi məlumatı və ya söyüşü çıxarmaq kifayət edir.
+        public async Task<IResult> UpdateAsync(
+            int reviewId, EditReviewDto dto, int adminUserId, string adminName, UserRole adminRole)
+        {
+            if (dto.Rating is < 1 or > 5)
+                return new ErrorResult("Bal 1 ilə 5 arasında olmalıdır.");
+
+            if (string.IsNullOrWhiteSpace(dto.Comment))
+                return new ErrorResult("Rəy mətni boş ola bilməz.");
+
+            var review = await FindAsync(reviewId);
+            if (review is null)
+                return new ErrorResult("Rəy tapılmadı.");
+
+            var comment = dto.Comment.Trim();
+
+            if (review.Rating == dto.Rating && review.Comment == comment)
+                return new ErrorResult("Dəyişiklik yoxdur.");
+
+            // Əvvəlki hal əvvəlcə yazılır — düzəliş uğursuz olsa belə tarixçə itməsin
+            await _editDal.AddAsync(new ReviewEdit
+            {
+                ReviewId = review.Id,
+                EditedByUserId = adminUserId,
+                EditedByName = adminName,
+                EditedByRole = adminRole.ToString(),
+                OldRating = review.Rating,
+                NewRating = dto.Rating,
+                OldComment = review.Comment,
+                NewComment = comment,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            review.Rating = dto.Rating;
+            review.Comment = comment;
+            await _reviewDal.UpdateAsync(review);
+
+            return new SuccessResult("Rəy yeniləndi.");
+        }
+
+        // Düzəlişlərin əvvəlki və yeni halı. Çağırış icazəsi kontrollerdə SuperAdmin ilə
+        // məhdudlaşdırılıb — dəstək admini öz izini silə və ya gizlədə bilmir.
+        public async Task<IDataResult<List<ReviewEditDto>>> GetEditsAsync(int reviewId)
+        {
+            var query = await _editDal.GetListAsync(e => e.ReviewId == reviewId);
+
+            var items = await query
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => new ReviewEditDto
+                {
+                    Id = e.Id,
+                    EditedByName = e.EditedByName,
+                    EditedByRole = e.EditedByRole,
+                    OldRating = e.OldRating,
+                    NewRating = e.NewRating,
+                    OldComment = e.OldComment,
+                    NewComment = e.NewComment,
+                    CreatedAt = e.CreatedAt
+                })
+                .ToListAsync();
+
+            return new SuccessDataResult<List<ReviewEditDto>>(items);
+        }
+
+        public async Task<IResult> RestoreAsync(int reviewId)
+        {
+            var review = await FindAsync(reviewId);
+            if (review is null)
+                return new ErrorResult("Rəy tapılmadı.");
+
+            if (!review.IsDeleted)
+                return new ErrorResult("Bu rəy silinməyib.");
+
+            review.IsDeleted = false;
+            review.DeletedAt = null;
+            await _reviewDal.UpdateAsync(review);
+
+            return new SuccessResult("Rəy geri qaytarıldı.");
         }
 
         public async Task<IResult> ResolveReportsAsync(int reviewId)

@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // 50/60/70 manatlıq menyular
-    public class Menu : IEntity
+    public class Menu : IEntity, ISoftDelete
     {
         public int Id { get; set; }
         public int VenueId { get; set; }
@@ -15,5 +15,9 @@ namespace Entities.Concrete
         public string? ImageUrl { get; set; }
 
         public ICollection<MenuItem> Items { get; set; } = new List<MenuItem>();
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

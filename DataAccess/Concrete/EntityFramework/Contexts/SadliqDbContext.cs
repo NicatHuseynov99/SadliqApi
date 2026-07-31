@@ -1,3 +1,4 @@
+using Core.Entities;
 using Entities.Concrete;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
+        public DbSet<ReviewEdit> ReviewEdits => Set<ReviewEdit>();
         public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
@@ -28,6 +30,67 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueStaffHall> VenueStaffHalls => Set<VenueStaffHall>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<PageView> PageViews => Set<PageView>();
+
+        // Silmək fiziki deyil, işarələmədir. Ona görə bazanın öz kaskad silinməsi işə
+        // düşmür — valideyn işarələnəndə uşaqları burada, bir yerdə işarələyirik.
+        // Geri qaytaranda da eyni məntiq əks istiqamətdə işləyir.
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var venues = CollectSoftDeleteChanges<Venue>();
+            var halls = CollectSoftDeleteChanges<Hall>();
+            var menus = CollectSoftDeleteChanges<Menu>();
+
+            var saved = await base.SaveChangesAsync(cancellationToken);
+
+            foreach (var (id, deleted) in venues)
+            {
+                await CascadeAsync(Halls.Where(h => h.VenueId == id), deleted, cancellationToken);
+                await CascadeAsync(Menus.Where(m => m.VenueId == id), deleted, cancellationToken);
+                await CascadeAsync(VenueImages.Where(i => i.VenueId == id), deleted, cancellationToken);
+                await CascadeAsync(VenueFeatures.Where(f => f.VenueId == id), deleted, cancellationToken);
+                await CascadeAsync(Reviews.Where(r => r.VenueId == id), deleted, cancellationToken);
+            }
+
+            foreach (var (id, deleted) in halls)
+                await CascadeAsync(HallMedia.Where(m => m.HallId == id), deleted, cancellationToken);
+
+            foreach (var (id, deleted) in menus)
+                await CascadeAsync(MenuItems.Where(i => i.MenuId == id), deleted, cancellationToken);
+
+            return saved;
+        }
+
+        public override int SaveChanges() => SaveChangesAsync().GetAwaiter().GetResult();
+
+        // Bu yaddaşa yazmada IsDeleted dəyəri dəyişən sətirlər
+        private List<(int Id, bool Deleted)> CollectSoftDeleteChanges<T>() where T : class, IEntity, ISoftDelete
+        {
+            var list = new List<(int, bool)>();
+
+            foreach (var entry in ChangeTracker.Entries<T>())
+            {
+                if (entry.State != EntityState.Modified) continue;
+
+                var property = entry.Property(nameof(ISoftDelete.IsDeleted));
+                if (!property.IsModified) continue;
+
+                var id = (int)entry.Property("Id").CurrentValue!;
+                list.Add((id, entry.Entity.IsDeleted));
+            }
+
+            return list;
+        }
+
+        private static async Task CascadeAsync<T>(IQueryable<T> query, bool deleted, CancellationToken token)
+            where T : class, ISoftDelete
+        {
+            await query
+                .IgnoreQueryFilters()
+                .Where(x => x.IsDeleted != deleted)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.IsDeleted, deleted)
+                    .SetProperty(x => x.DeletedAt, deleted ? DateTime.UtcNow : null), token);
+        }
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -103,9 +166,22 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasForeignKey(r => r.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Silinmiş sətirlər heç bir adi sorğuda görünmür. Silmək fiziki deyil,
+            // işarələmədir — baza idarəsi bölməsi IgnoreQueryFilters() ilə hamısını görür.
+            b.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+            b.Entity<Venue>().HasQueryFilter(v => !v.IsDeleted);
+            b.Entity<Hall>().HasQueryFilter(h => !h.IsDeleted);
+            b.Entity<Menu>().HasQueryFilter(m => !m.IsDeleted);
+            b.Entity<MenuItem>().HasQueryFilter(m => !m.IsDeleted);
+            b.Entity<VenueImage>().HasQueryFilter(i => !i.IsDeleted);
+            b.Entity<HallMedia>().HasQueryFilter(m => !m.IsDeleted);
+            b.Entity<VenueFeature>().HasQueryFilter(f => !f.IsDeleted);
+            b.Entity<Reservation>().HasQueryFilter(r => !r.IsDeleted);
+            b.Entity<VenueStaff>().HasQueryFilter(s => !s.IsDeleted);
+
             // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına
             // düşmür. Moderasiya paneli IgnoreQueryFilters() ilə hamısını görür.
-            b.Entity<Review>().HasQueryFilter(r => !r.IsHidden);
+            b.Entity<Review>().HasQueryFilter(r => !r.IsHidden && !r.IsDeleted);
 
             // Şikayət gizlədilmiş rəylərə də aid ola bilər — filtri sıfırlayırıq,
             // yoxsa EF valideynin filtrini şikayətlərə də tətbiq edər.
@@ -128,6 +204,22 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .IsUnique();
 
             b.Entity<Review>().HasIndex(r => r.IsHidden);
+
+            // Düzəliş tarixçəsi silinmiş rəy üçün də görünməlidir
+            b.Entity<ReviewEdit>().HasQueryFilter(_ => true);
+
+            b.Entity<ReviewEdit>()
+                .HasOne(e => e.Review).WithMany()
+                .HasForeignKey(e => e.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Düzəlişi edən hesab silinsə də qeyd qalır — adı onsuz da saxlanılıb
+            b.Entity<ReviewEdit>()
+                .HasOne(e => e.EditedByUser).WithMany()
+                .HasForeignKey(e => e.EditedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<ReviewEdit>().HasIndex(e => e.ReviewId);
 
             // Parametr açarı təkrarlana bilməz
             b.Entity<PlatformSetting>().HasIndex(s => s.Key).IsUnique();

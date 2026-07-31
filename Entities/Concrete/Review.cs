@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // saray haqqında qonaq rəyi
-    public class Review : IEntity
+    public class Review : IEntity, ISoftDelete
     {
         public int Id { get; set; }
         public int VenueId { get; set; }
@@ -27,5 +27,9 @@ namespace Entities.Concrete
 
         // Şikayət sayı — moderatorun diqqətini yönəltmək üçün saxlanılır
         public int ReportCount { get; set; }
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

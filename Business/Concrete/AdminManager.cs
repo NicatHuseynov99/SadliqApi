@@ -64,16 +64,20 @@ namespace Business.Concrete
         // Dəstək admini SuperAdmin hesablarını ümumiyyətlə görmür.
         public async Task<IDataResult<List<AdminUserDto>>> GetUsersAsync(string? role, string? q, string? status, UserRole viewerRole)
         {
-            var query = await _userDal.GetListAsync();
+            // Admin silinmiş hesabları da görməlidir — filtri söndürüb özümüz süzürük
+            var query = (await _userDal.GetListAsync()).IgnoreQueryFilters();
             query = HideSuperAdmins(query, viewerRole);
 
             if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var parsed))
                 query = query.Where(u => u.Role == parsed);
 
-            if (status == "active")
-                query = query.Where(u => u.IsActive);
-            else if (status == "blocked")
-                query = query.Where(u => !u.IsActive);
+            query = status switch
+            {
+                "active" => query.Where(u => !u.IsDeleted && u.IsActive),
+                "blocked" => query.Where(u => !u.IsDeleted && !u.IsActive),
+                "deleted" => query.Where(u => u.IsDeleted),
+                _ => query.Where(u => !u.IsDeleted)
+            };
 
             if (!string.IsNullOrWhiteSpace(q))
             {
@@ -330,6 +334,29 @@ namespace Business.Concrete
             return new SuccessResult($"{name} hesabı silindi.");
         }
 
+        // Silinmiş hesabı geri qaytarır — e-poçt bu arada başqasına verilibsə mane oluruq
+        public async Task<IResult> RestoreUserAsync(int userId, UserRole viewerRole)
+        {
+            var user = await FindVisibleUserAsync(userId, viewerRole);
+            if (user is null)
+                return new ErrorResult("İstifadəçi tapılmadı.");
+
+            if (!user.IsDeleted)
+                return new ErrorResult("Bu hesab silinməyib.");
+
+            var duplicate = await _userDal.GetAsync(u => u.Email == user.Email && u.Id != userId);
+            if (duplicate is not null)
+                return new ErrorResult("Bu e-poçt artıq başqa hesabda işlənir. Əvvəlcə e-poçtu dəyişin.");
+
+            user.IsDeleted = false;
+            user.DeletedAt = null;
+            await _userDal.UpdateAsync(user);
+
+            _audit.Set("UserRestored", $"{user.FullName} hesabını geri qaytardı", "User", user.Id);
+
+            return new SuccessResult($"{user.FullName} hesabı geri qaytarıldı.");
+        }
+
         private static string RoleLabel(UserRole role) => role switch
         {
             UserRole.Customer => "Müştəri",
@@ -349,7 +376,10 @@ namespace Business.Concrete
         // Dəstək admini üçün SuperAdmin sadəcə "tapılmadı" kimi görünür.
         private async Task<User?> FindVisibleUserAsync(int userId, UserRole viewerRole)
         {
-            var user = await _userDal.GetAsync(u => u.Id == userId);
+            // Silinmiş hesabla da işləmək lazım ola bilər (geri qaytarma, baxış)
+            var query = (await _userDal.GetListAsync()).IgnoreQueryFilters();
+            var user = await query.FirstOrDefaultAsync(u => u.Id == userId);
+
             if (user is null) return null;
             if (viewerRole != UserRole.SuperAdmin && user.Role == UserRole.SuperAdmin) return null;
             return user;
@@ -366,6 +396,8 @@ namespace Business.Concrete
             Role = u.Role.ToString(),
             IsActive = u.IsActive,
             CreatedAt = u.CreatedAt,
+            IsDeleted = u.IsDeleted,
+            DeletedAt = u.DeletedAt,
             VenueCount = venueCount
         };
 

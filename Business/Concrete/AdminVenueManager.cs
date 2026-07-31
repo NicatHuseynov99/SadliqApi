@@ -29,13 +29,15 @@ namespace Business.Concrete
 
         public async Task<IDataResult<PagedResult<AdminVenueDto>>> SearchAsync(AdminVenueSearchDto dto)
         {
-            var query = await _venueDal.GetListAsync();
+            // Admin silinmişləri də görməlidir — filtri söndürüb özümüz süzürük
+            var query = (await _venueDal.GetListAsync()).IgnoreQueryFilters();
 
             query = dto.Status switch
             {
-                "approved" => query.Where(v => v.IsApproved),
-                "pending" => query.Where(v => !v.IsApproved),
-                _ => query
+                "approved" => query.Where(v => !v.IsDeleted && v.IsApproved),
+                "pending" => query.Where(v => !v.IsDeleted && !v.IsApproved),
+                "deleted" => query.Where(v => v.IsDeleted),
+                _ => query.Where(v => !v.IsDeleted)
             };
 
             if (!string.IsNullOrWhiteSpace(dto.City))
@@ -117,6 +119,8 @@ namespace Business.Concrete
                     CoverImageUrl = r.Venue.CoverImageUrl,
                     IsApproved = r.Venue.IsApproved,
                     CreatedAt = r.Venue.CreatedAt,
+                    IsDeleted = r.Venue.IsDeleted,
+                    DeletedAt = r.Venue.DeletedAt,
                     OwnerId = r.Venue.OwnerId,
                     OwnerName = owner is null ? "—" : $"{owner.FirstName} {owner.LastName}",
                     OwnerEmail = owner?.Email,
@@ -165,6 +169,29 @@ namespace Business.Concrete
             return new SuccessResult(dto.IsApproved
                 ? "Saray təsdiqləndi və saytda göründü."
                 : "Təsdiq geri alındı — saray saytda görünmür.");
+        }
+
+        // Silinmiş saray adi sorğularda görünmür — filtri söndürüb tapırıq
+        public async Task<IResult> RestoreAsync(int venueId)
+        {
+            var query = (await _venueDal.GetListAsync()).IgnoreQueryFilters();
+            var venue = await query.FirstOrDefaultAsync(v => v.Id == venueId);
+
+            if (venue is null)
+                return new ErrorResult("Saray tapılmadı.");
+
+            if (!venue.IsDeleted)
+                return new ErrorResult("Bu saray silinməyib.");
+
+            venue.IsDeleted = false;
+            venue.DeletedAt = null;
+
+            // Zallar, menyular, şəkillər və rəylər avtomatik geri qayıdır (kaskad)
+            await _venueDal.UpdateAsync(venue);
+
+            _audit.Set("VenueRestored", $"«{venue.Name}» sarayını geri qaytardı", "Venue", venue.Id, venue.Id);
+
+            return new SuccessResult($"«{venue.Name}» geri qaytarıldı — zalları və menyuları ilə birlikdə.");
         }
 
         public async Task<IResult> ChangeOwnerAsync(int venueId, ChangeVenueOwnerDto dto)

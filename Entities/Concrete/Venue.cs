@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // sadlıq sarayı
-    public class Venue : IEntity
+    public class Venue : IEntity, ISoftDelete
     {
         public int Id { get; set; }
         public int OwnerId { get; set; }
@@ -24,5 +24,9 @@ namespace Entities.Concrete
         public ICollection<Menu> Menus { get; set; } = new List<Menu>();
         public ICollection<VenueFeature> Features { get; set; } = new List<VenueFeature>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

@@ -3,7 +3,7 @@ using Core.Entities;
 namespace Entities.Concrete
 {
     // saray rəhbərliyinin təyin etdiyi administrator — hansı istifadəçinin hansı saraya aid olduğunu bildirir
-    public class VenueStaff : IEntity
+    public class VenueStaff : IEntity, ISoftDelete
     {
         public int Id { get; set; }
 
@@ -22,5 +22,9 @@ namespace Entities.Concrete
 
         // Boşdursa sarayın bütün zalları, doludursa yalnız seçilmiş zallar
         public ICollection<VenueStaffHall> Halls { get; set; } = new List<VenueStaffHall>();
+
+        // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 }

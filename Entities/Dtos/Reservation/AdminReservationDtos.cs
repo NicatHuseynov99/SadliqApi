@@ -29,6 +29,10 @@ namespace Entities.Dtos.Reservation
 
         public int VenueId { get; set; }
         public string VenueName { get; set; } = string.Empty;
+
+        // Paneldə sarayı bir baxışda tanımaq üçün
+        public string? VenueImageUrl { get; set; }
+        public string City { get; set; } = string.Empty;
         public string HallName { get; set; } = string.Empty;
         public string MenuName { get; set; } = string.Empty;
 
@@ -47,6 +51,10 @@ namespace Entities.Dtos.Reservation
 
         // Tədbir keçibsə statusu dəyişməyin mənası yoxdur — panel bunu göstərir
         public bool IsPast { get; set; }
+
+        // Silinmiş rezerv yalnız adminə görünür və geri qaytarıla bilir
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
     }
 
     public class AdminReservationStatsDto
