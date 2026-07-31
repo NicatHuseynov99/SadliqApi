@@ -17,5 +17,15 @@ namespace Entities.Concrete
         public int Rating { get; set; }
         public string Comment { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Moderasiya: gizlədilmiş rəy saytda görünmür və reytinqə təsir etmir,
+        // amma silinmir — lazım olsa geri qaytarıla bilər.
+        public bool IsHidden { get; set; }
+        public string? HiddenReason { get; set; }
+        public DateTime? HiddenAt { get; set; }
+        public int? HiddenByUserId { get; set; }
+
+        // Şikayət sayı — moderatorun diqqətini yönəltmək üçün saxlanılır
+        public int ReportCount { get; set; }
     }
 }

@@ -13,5 +13,8 @@ namespace Business.Abstract
 
         Task<IDataResult<Review>> UpdateAsync(int reviewId, UpdateReviewDto dto, int userId);
         Task<IResult> DeleteAsync(int reviewId, int userId);
+
+        // İstifadəçi uyğunsuz rəyi moderatorun diqqətinə çatdırır
+        Task<IResult> ReportAsync(ReportReviewDto dto, int userId);
     }
 }

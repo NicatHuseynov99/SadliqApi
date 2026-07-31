@@ -51,6 +51,18 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Uyğunsuz rəyi şikayət etmək — giriş tələb olunur ki, təkrar şikayət olmasın
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Report([FromBody] ReportReviewDto dto)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reviewService.ReportAsync(dto, userId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // İstifadəçi öz rəyini silir
         [Authorize]
         [HttpDelete("{id}")]

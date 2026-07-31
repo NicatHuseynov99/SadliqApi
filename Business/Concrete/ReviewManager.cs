@@ -11,11 +11,13 @@ namespace Business.Concrete
     {
         private readonly IReviewDal _reviewDal;
         private readonly IVenueDal _venueDal;
+        private readonly IReviewReportDal _reportDal;
 
-        public ReviewManager(IReviewDal reviewDal, IVenueDal venueDal)
+        public ReviewManager(IReviewDal reviewDal, IVenueDal venueDal, IReviewReportDal reportDal)
         {
             _reviewDal = reviewDal;
             _venueDal = venueDal;
+            _reportDal = reportDal;
         }
 
         // Sarayın bütün rəyləri — yenilər yuxarıda
@@ -90,6 +92,41 @@ namespace Business.Concrete
             await _reviewDal.DeleteAsync(review);
             return new SuccessResult("Rəy silindi.");
         }
+
+        // İstifadəçi rəyi şikayət edir. Rəy dərhal gizlənmir — qərarı moderator verir.
+        public async Task<IResult> ReportAsync(ReportReviewDto dto, int userId)
+        {
+            if (!AllowedReasons.Contains(dto.Reason))
+                return new ErrorResult("Şikayət səbəbi düzgün seçilməyib.");
+
+            var review = await _reviewDal.GetAsync(r => r.Id == dto.ReviewId);
+            if (review is null)
+                return new ErrorResult("Rəy tapılmadı.");
+
+            if (review.CustomerId == userId)
+                return new ErrorResult("Öz rəyinizi şikayət edə bilməzsiniz.");
+
+            var existing = await _reportDal.GetAsync(r => r.ReviewId == dto.ReviewId && r.ReporterUserId == userId);
+            if (existing is not null)
+                return new ErrorResult("Bu rəyi artıq şikayət etmisiniz.");
+
+            await _reportDal.AddAsync(new ReviewReport
+            {
+                ReviewId = dto.ReviewId,
+                ReporterUserId = userId,
+                Reason = dto.Reason,
+                Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
+                CreatedAt = DateTime.UtcNow
+            });
+
+            // Sayğac moderasiya siyahısında sıralama üçün saxlanılır
+            review.ReportCount += 1;
+            await _reviewDal.UpdateAsync(review);
+
+            return new SuccessResult("Şikayətiniz moderatora göndərildi.");
+        }
+
+        private static readonly string[] AllowedReasons = { "spam", "offensive", "fake", "irrelevant", "other" };
 
         // Bal və mətn yoxlaması — xəta varsa mesaj, yoxdursa null qaytarır
         private static string? Validate(int rating, string comment)

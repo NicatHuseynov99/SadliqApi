@@ -20,6 +20,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<Reservation> Reservations => Set<Reservation>();
         public DbSet<VenueFeature> VenueFeatures => Set<VenueFeature>();
         public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
         public DbSet<Favorite> Favorites => Set<Favorite>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
         public DbSet<VenueStaff> VenueStaff => Set<VenueStaff>();
@@ -100,6 +101,32 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasOne(r => r.Customer).WithMany()
                 .HasForeignKey(r => r.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına
+            // düşmür. Moderasiya paneli IgnoreQueryFilters() ilə hamısını görür.
+            b.Entity<Review>().HasQueryFilter(r => !r.IsHidden);
+
+            // Şikayət gizlədilmiş rəylərə də aid ola bilər — filtri sıfırlayırıq,
+            // yoxsa EF valideynin filtrini şikayətlərə də tətbiq edər.
+            b.Entity<ReviewReport>().HasQueryFilter(_ => true);
+
+            b.Entity<ReviewReport>()
+                .HasOne(r => r.Review).WithMany()
+                .HasForeignKey(r => r.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Şikayət edən hesab silinsə, şikayət anonim olaraq qalır
+            b.Entity<ReviewReport>()
+                .HasOne(r => r.ReporterUser).WithMany()
+                .HasForeignKey(r => r.ReporterUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Eyni istifadəçi eyni rəyi iki dəfə şikayət edə bilməz
+            b.Entity<ReviewReport>()
+                .HasIndex(r => new { r.ReviewId, r.ReporterUserId })
+                .IsUnique();
+
+            b.Entity<Review>().HasIndex(r => r.IsHidden);
 
             base.OnModelCreating(b);
         }

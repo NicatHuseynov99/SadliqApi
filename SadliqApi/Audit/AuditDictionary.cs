@@ -40,7 +40,13 @@ namespace SadliqApi.Audit
             ["Reviews.Create"] = ("ReviewCreated", "rəy yazdı"),
             ["Reviews.Update"] = ("ReviewUpdated", "rəyini redaktə etdi"),
             ["Reviews.Delete"] = ("ReviewDeleted", "rəyini sildi"),
+            ["Reviews.Report"] = ("ReviewReported", "rəyi şikayət etdi"),
             ["Favorites.Toggle"] = ("FavoriteToggled", "seçilmişlər siyahısını dəyişdi"),
+
+            // Rəy moderasiyası
+            ["ReviewModeration.SetHidden"] = ("ReviewModerated", "rəyin görünüşünü dəyişdi"),
+            ["ReviewModeration.ResolveReports"] = ("ReviewReportsResolved", "rəyin şikayətlərini bağladı"),
+            ["ReviewModeration.Delete"] = ("ReviewDeletedByAdmin", "rəyi tamamilə sildi"),
 
             // Administratorlar
             ["VenueStaff.Create"] = ("StaffCreated", "yeni saray administratoru əlavə etdi"),
