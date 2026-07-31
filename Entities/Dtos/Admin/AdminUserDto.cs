@@ -61,4 +61,26 @@ namespace Entities.Dtos.Admin
     {
         public string NewPassword { get; set; } = string.Empty;
     }
+
+    // Admin yeni hesab açır — qeydiyyat formasından keçmədən
+    public class CreateUserDto
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+
+        // "Customer", "Owner", "VenueAdmin", "Support"
+        public string Role { get; set; } = "Customer";
+    }
+
+    // Hesabın əsas məlumatlarının redaktəsi
+    public class UpdateUserDto
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+    }
 }

@@ -15,5 +15,12 @@ namespace Business.Abstract
         Task<IResult> ChangeRoleAsync(int userId, ChangeRoleDto dto, int currentAdminId, UserRole viewerRole);
         Task<IResult> SetUserActiveAsync(int userId, SetUserActiveDto dto, int currentAdminId, UserRole viewerRole);
         Task<IResult> ResetUserPasswordAsync(int userId, AdminResetPasswordDto dto, UserRole viewerRole);
+
+        // Admin yeni hesab açır və mövcud hesabın məlumatlarını redaktə edir
+        Task<IDataResult<AdminUserDto>> CreateUserAsync(CreateUserDto dto, UserRole viewerRole);
+        Task<IResult> UpdateUserAsync(int userId, UpdateUserDto dto, UserRole viewerRole);
+
+        // Hesabın tamamilə silinməsi — bağlı məlumatı olan hesab silinmir
+        Task<IResult> DeleteUserAsync(int userId, int currentAdminId, UserRole viewerRole);
     }
 }

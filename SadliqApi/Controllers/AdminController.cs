@@ -78,5 +78,33 @@ namespace SadliqApi.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
+        {
+            var result = await _adminService.CreateUserAsync(dto, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> UpdateUser(int userId, [FromBody] UpdateUserDto dto)
+        {
+            var result = await _adminService.UpdateUserAsync(userId, dto, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> DeleteUser(int userId)
+        {
+            var currentAdminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _adminService.DeleteUserAsync(userId, currentAdminId, ViewerRole);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

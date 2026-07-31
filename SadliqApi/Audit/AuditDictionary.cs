@@ -72,6 +72,12 @@ namespace SadliqApi.Audit
             ["Admin.GetUserDetail"] = ("AdminViewedUser", "istifadəçi kartına baxdı"),
             ["Admin.SetUserActive"] = ("UserBlocked", "istifadəçi hesabının statusunu dəyişdi"),
             ["Admin.ResetUserPassword"] = ("UserPasswordReset", "istifadəçinin parolunu sıfırladı"),
+            ["Admin.CreateUser"] = ("UserCreatedByAdmin", "yeni hesab yaratdı"),
+            ["Admin.UpdateUser"] = ("UserUpdatedByAdmin", "hesabın məlumatlarını yenilədi"),
+            ["Admin.DeleteUser"] = ("UserDeleted", "hesabı sildi"),
+            ["AdminVenues.SetApproved"] = ("VenueApproved", "sarayın təsdiq vəziyyətini dəyişdi"),
+            ["AdminVenues.ChangeOwner"] = ("VenueOwnerChanged", "sarayı başqa sahibə keçirdi"),
+            ["AdminVenues.Delete"] = ("VenueDeleted", "sarayı sildi"),
             ["Audit.Search"] = ("AuditViewed", "fəaliyyət jurnalına baxdı"),
         };
 

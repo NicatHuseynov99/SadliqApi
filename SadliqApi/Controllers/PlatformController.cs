@@ -7,8 +7,8 @@ using System.Security.Claims;
 namespace SadliqApi.Controllers
 {
     // Platforma parametrləri və məlumat kitabçaları.
-    // Parametrlər bütün saytın davranışına təsir etdiyi üçün yalnız SuperAdmin dəyişə bilir;
-    // dəstək admini görə bilir, amma toxuna bilmir.
+    // Dəstək admini burada platforma sahibi ilə eyni səlahiyyətdədir — parametrlərin
+    // SuperAdmin hesabları ilə əlaqəsi yoxdur.
     [Route("api/[controller]/[action]")]
     [ApiController]
     [Authorize(Roles = "SuperAdmin,Support")]
@@ -29,7 +29,6 @@ namespace SadliqApi.Controllers
         }
 
         [HttpPut("{key}")]
-        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> UpdateSetting(string key, [FromBody] UpdateSettingDto dto)
         {
             var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -47,7 +46,6 @@ namespace SadliqApi.Controllers
         }
 
         [HttpPut]
-        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> RenameCity([FromBody] RenameReferenceDto dto)
         {
             var result = await _service.RenameCityAsync(dto);
@@ -64,7 +62,6 @@ namespace SadliqApi.Controllers
         }
 
         [HttpPut]
-        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> RenameFeature([FromBody] RenameReferenceDto dto)
         {
             var result = await _service.RenameFeatureAsync(dto);
@@ -74,7 +71,6 @@ namespace SadliqApi.Controllers
         }
 
         [HttpDelete("{name}")]
-        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> DeleteFeature(string name)
         {
             var result = await _service.DeleteFeatureAsync(name);

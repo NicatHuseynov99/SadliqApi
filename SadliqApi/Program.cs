@@ -99,6 +99,7 @@ builder.Services.AddScoped<IVisitService, VisitManager>();
 builder.Services.AddScoped<IReviewModerationService, ReviewModerationManager>();
 builder.Services.AddScoped<IAdminReservationService, AdminReservationManager>();
 builder.Services.AddScoped<IPlatformSettingsService, PlatformSettingsManager>();
+builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 
 // Fəaliyyət jurnalı: kontekst sorğu boyunca yaşayır, yazı isə arxa fonda gedir
 builder.Services.AddScoped<IAuditContext, AuditContext>();

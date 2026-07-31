@@ -216,6 +216,129 @@ namespace Business.Concrete
             return new SuccessResult($"{user.FullName} üçün yeni parol təyin edildi.");
         }
 
+        // Admin yeni hesab açır. Qeydiyyat formasından fərqi: rol dərhal təyin olunur
+        // və e-poçt təsdiqi gözlənilmir.
+        public async Task<IDataResult<AdminUserDto>> CreateUserAsync(CreateUserDto dto, UserRole viewerRole)
+        {
+            var firstName = dto.FirstName?.Trim() ?? string.Empty;
+            var lastName = dto.LastName?.Trim() ?? string.Empty;
+            var email = dto.Email?.Trim().ToLower() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                return new ErrorDataResult<AdminUserDto>("Ad və soyad boş ola bilməz.");
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+                return new ErrorDataResult<AdminUserDto>("E-poçt düzgün deyil.");
+
+            if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Trim().Length < 6)
+                return new ErrorDataResult<AdminUserDto>("Parol ən azı 6 simvol olmalıdır.");
+
+            if (!Enum.TryParse<UserRole>(dto.Role, true, out var role))
+                return new ErrorDataResult<AdminUserDto>("Rol düzgün seçilməyib.");
+
+            // Dəstək admini SuperAdmin hesabı yarada bilməz
+            if (role == UserRole.SuperAdmin && viewerRole != UserRole.SuperAdmin)
+                return new ErrorDataResult<AdminUserDto>("Bu rolu təyin etmək səlahiyyətiniz yoxdur.");
+
+            var existing = await _userDal.GetAsync(u => u.Email == email);
+            if (existing is not null)
+                return new ErrorDataResult<AdminUserDto>("Bu e-poçt artıq qeydiyyatdan keçib.");
+
+            HashingHelper.CreatePasswordHash(dto.Password.Trim(), out var hash, out var salt);
+
+            var user = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Phone = dto.Phone?.Trim() ?? string.Empty,
+                Role = role,
+                IsActive = true,
+                PasswordHash = hash,
+                PasswordSalt = salt,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _userDal.AddAsync(user);
+
+            _audit.Set("UserCreatedByAdmin",
+                $"{user.FullName} ({RoleLabel(role)}) hesabını yaratdı",
+                "User", user.Id);
+
+            return new SuccessDataResult<AdminUserDto>(ToDto(user, 0), $"{user.FullName} üçün hesab yaradıldı.");
+        }
+
+        public async Task<IResult> UpdateUserAsync(int userId, UpdateUserDto dto, UserRole viewerRole)
+        {
+            var user = await FindVisibleUserAsync(userId, viewerRole);
+            if (user is null)
+                return new ErrorResult("İstifadəçi tapılmadı.");
+
+            var firstName = dto.FirstName?.Trim() ?? string.Empty;
+            var lastName = dto.LastName?.Trim() ?? string.Empty;
+            var email = dto.Email?.Trim().ToLower() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                return new ErrorResult("Ad və soyad boş ola bilməz.");
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+                return new ErrorResult("E-poçt düzgün deyil.");
+
+            // E-poçt başqasında varsa dəyişməyə icazə vermirik
+            var duplicate = await _userDal.GetAsync(u => u.Email == email && u.Id != userId);
+            if (duplicate is not null)
+                return new ErrorResult("Bu e-poçt başqa hesaba aiddir.");
+
+            user.FirstName = firstName;
+            user.LastName = lastName;
+            user.Email = email;
+            user.Phone = dto.Phone?.Trim() ?? string.Empty;
+
+            await _userDal.UpdateAsync(user);
+
+            _audit.Set("UserUpdatedByAdmin",
+                $"{user.FullName} hesabının məlumatlarını yenilədi",
+                "User", user.Id);
+
+            return new SuccessResult("Məlumatlar yeniləndi.");
+        }
+
+        // Silmək yalnız «təmiz» hesablar üçündür: sarayı, rezervi və ya rəyi olan
+        // hesab silinsə tarixçə dağılar — belə hallarda blok tövsiyə olunur.
+        public async Task<IResult> DeleteUserAsync(int userId, int currentAdminId, UserRole viewerRole)
+        {
+            if (userId == currentAdminId)
+                return new ErrorResult("Öz hesabınızı silə bilməzsiniz.");
+
+            var user = await FindVisibleUserAsync(userId, viewerRole);
+            if (user is null)
+                return new ErrorResult("İstifadəçi tapılmadı.");
+
+            var venues = await _venueDal.GetListAsync(v => v.OwnerId == userId);
+            if (await venues.AnyAsync())
+                return new ErrorResult("Bu hesabın sarayı var. Əvvəlcə sarayı başqa sahibə keçirin.");
+
+            var reservations = await _reservationDal.GetListAsync(r => r.CustomerId == userId);
+            if (await reservations.AnyAsync())
+                return new ErrorResult("Bu hesabın rezervləri var. Silmək əvəzinə bloklayın.");
+
+            var name = user.FullName;
+            await _userDal.DeleteAsync(user);
+
+            _audit.Set("UserDeleted", $"{name} hesabını sildi", "User", userId);
+
+            return new SuccessResult($"{name} hesabı silindi.");
+        }
+
+        private static string RoleLabel(UserRole role) => role switch
+        {
+            UserRole.Customer => "Müştəri",
+            UserRole.Owner => "Saray sahibi",
+            UserRole.VenueAdmin => "Saray administratoru",
+            UserRole.Support => "Dəstək admini",
+            _ => "Platforma sahibi"
+        };
+
         // Dəstək admini üçün SuperAdmin hesabları siyahıdan çıxarılır
         private static IQueryable<User> HideSuperAdmins(IQueryable<User> query, UserRole viewerRole) =>
             viewerRole == UserRole.SuperAdmin
