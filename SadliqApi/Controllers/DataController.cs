@@ -7,11 +7,12 @@ using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
-    // Bazanın birbaşa idarəsi. Buradan hər cədvələ toxunmaq olur, ona görə
-    // yalnız platforma sahibi və dəstək admini üçündür və hər əməliyyat jurnala düşür.
+    // Bazanın birbaşa idarəsi. Buradan hər cədvələ, o cümlədən hesablara və jurnala
+    // toxunmaq olur — ona görə YALNIZ platforma sahibi üçündür.
+    // Dəstək admini bu bölməni nə görür, nə də sorğu ata bilir.
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,Support")]
+    [Authorize(Roles = "SuperAdmin")]
     public class DataController : ControllerBase
     {
         private readonly IDataExplorerService _service;
