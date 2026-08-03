@@ -97,6 +97,11 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
 
         protected override void OnModelCreating(ModelBuilder b)
         {
+            // Azərbaycan hərflərinə həssas olmayan axtarış: «Gəncə» → «ganca».
+            // Funksiya bazada yaradılmalıdır (bax: SearchFunctions).
+            b.HasDbFunction(typeof(SearchFunctions).GetMethod(nameof(SearchFunctions.Normalize))!)
+                .HasName("az_normalize");
+
             // Email unikal olmalıdır
             b.Entity<User>().HasIndex(u => u.Email).IsUnique();
 

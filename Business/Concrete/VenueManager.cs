@@ -1,6 +1,7 @@
 using Business.Abstract;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
+using DataAccess.Concrete.EntityFramework;
 using Entities.Concrete;
 using Entities.Dtos.Common;
 using Entities.Dtos.Venue;
@@ -63,12 +64,7 @@ namespace Business.Concrete
             var query = await _venueDal.GetListAsync(v => v.IsApproved);
             var filtered = query.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(dto.Q))
-            {
-                var term = $"%{dto.Q.Trim()}%";
-                filtered = filtered.Where(v =>
-                    EF.Functions.ILike(v.Name, term) || EF.Functions.ILike(v.Address, term));
-            }
+            filtered = ApplyTextSearch(filtered, dto.Q);
 
             if (!string.IsNullOrWhiteSpace(dto.City))
                 filtered = filtered.Where(v => v.City.ToLower() == dto.City.ToLower());
@@ -257,17 +253,79 @@ namespace Business.Concrete
             return earthRadiusKm * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         }
 
+        // Axtarış qutusunun təklifləri: 5 saray + 3 şəhər.
+        // Cavab yüngül olmalıdır — hər hərfdə çağırılır.
+        public async Task<IDataResult<List<SearchSuggestionDto>>> SuggestAsync(string? q)
+        {
+            var suggestions = new List<SearchSuggestionDto>();
+
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+                return new SuccessDataResult<List<SearchSuggestionDto>>(suggestions);
+
+            var query = await _venueDal.GetListAsync(v => v.IsApproved);
+            var term = $"%{q.Trim()}%";
+
+            var venues = await query
+                .Where(v => EF.Functions.Like(SearchFunctions.Normalize(v.Name), SearchFunctions.Normalize(term)))
+                .OrderByDescending(v => v.Reviews.Count)
+                .Take(5)
+                .Select(v => new SearchSuggestionDto
+                {
+                    Type = "venue",
+                    Text = v.Name,
+                    VenueId = v.Id,
+                    City = v.City,
+                    ImageUrl = v.CoverImageUrl
+                })
+                .ToListAsync();
+
+            var cities = await query
+                .Where(v => EF.Functions.Like(SearchFunctions.Normalize(v.City), SearchFunctions.Normalize(term)))
+                .GroupBy(v => v.City)
+                .Select(g => new SearchSuggestionDto
+                {
+                    Type = "city",
+                    Text = g.Key,
+                    Count = g.Count()
+                })
+                .OrderByDescending(c => c.Count)
+                .Take(3)
+                .ToListAsync();
+
+            suggestions.AddRange(venues);
+            suggestions.AddRange(cities);
+
+            return new SuccessDataResult<List<SearchSuggestionDto>>(suggestions);
+        }
+
+        // Mətn axtarışı. İki məsələni həll edir:
+        // 1) diakritika — «Zumrud» yazan «Zümrüd Saray»ı tapmalıdır (unaccent);
+        // 2) əhatə — müştəri sarayın adını bilməyə bilər, amma zalın, menyunun
+        //    və ya özəlliyin adını yazır.
+        private static IQueryable<Venue> ApplyTextSearch(IQueryable<Venue> query, string? search)
+        {
+            if (string.IsNullOrWhiteSpace(search))
+                return query;
+
+            // az_normalize() həm hərfləri sadələşdirir, həm kiçik hərfə salır —
+            // ona görə adi LIKE kifayətdir
+            var term = $"%{search.Trim()}%";
+
+            return query.Where(v =>
+                EF.Functions.Like(SearchFunctions.Normalize(v.Name), SearchFunctions.Normalize(term)) ||
+                EF.Functions.Like(SearchFunctions.Normalize(v.Address), SearchFunctions.Normalize(term)) ||
+                EF.Functions.Like(SearchFunctions.Normalize(v.City), SearchFunctions.Normalize(term)) ||
+                v.Halls.Any(h => EF.Functions.Like(SearchFunctions.Normalize(h.Name), SearchFunctions.Normalize(term))) ||
+                v.Menus.Any(m => EF.Functions.Like(SearchFunctions.Normalize(m.Name), SearchFunctions.Normalize(term))) ||
+                v.Features.Any(f => EF.Functions.Like(SearchFunctions.Normalize(f.Name), SearchFunctions.Normalize(term))));
+        }
+
         // Siyahı və xəritə eyni süzgəcləri işlətməlidir — məntiq bir yerdə saxlanılır
         private static IQueryable<Venue> ApplyCommonFilters(IQueryable<Venue> query, VenueMapSearchDto dto)
         {
             var filtered = query;
 
-            if (!string.IsNullOrWhiteSpace(dto.Q))
-            {
-                var term = $"%{dto.Q.Trim()}%";
-                filtered = filtered.Where(v =>
-                    EF.Functions.ILike(v.Name, term) || EF.Functions.ILike(v.Address, term));
-            }
+            filtered = ApplyTextSearch(filtered, dto.Q);
 
             if (!string.IsNullOrWhiteSpace(dto.City))
                 filtered = filtered.Where(v => v.City.ToLower() == dto.City.ToLower());

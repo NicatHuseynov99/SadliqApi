@@ -13,6 +13,9 @@ namespace Business.Abstract
 
         // Xəritə rejimi — markerlər üçün yüngül siyahı
         Task<IDataResult<VenueMapResultDto>> MapSearchAsync(VenueMapSearchDto dto);
+
+        // Axtarış qutusunun təklifləri
+        Task<IDataResult<List<SearchSuggestionDto>>> SuggestAsync(string? q);
         Task<IDataResult<Venue>> GetByIdAsync(int id);
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);

@@ -34,6 +34,14 @@ namespace SadliqApi.Controllers
         }
 
         // Filtr panelinin seçimləri: şəhərlər, özəlliklər, qiymət və tutum aralığı
+        // Axtarış qutusunun təklifləri — giriş tələb olunmur
+        [HttpGet]
+        public async Task<IActionResult> Suggest([FromQuery] string? q)
+        {
+            var result = await _venueService.SuggestAsync(q);
+            return Ok(result);
+        }
+
         // Xəritə rejimi — giriş tələb olunmur
         [HttpGet]
         public async Task<IActionResult> MapSearch([FromQuery] VenueMapSearchDto dto)

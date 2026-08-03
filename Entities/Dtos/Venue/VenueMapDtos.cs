@@ -53,6 +53,22 @@ namespace Entities.Dtos.Venue
         public double? DistanceKm { get; set; }
     }
 
+    // Axtarış qutusunda yazdıqca çıxan təkliflər
+    public class SearchSuggestionDto
+    {
+        // venue | city
+        public string Type { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+
+        // Saray təklifində sayta keçid üçün
+        public int? VenueId { get; set; }
+        public string? City { get; set; }
+        public string? ImageUrl { get; set; }
+
+        // Şəhər təklifində neçə saray olduğu
+        public int? Count { get; set; }
+    }
+
     public class VenueMapResultDto
     {
         public List<VenueMapItemDto> Items { get; set; } = new();
