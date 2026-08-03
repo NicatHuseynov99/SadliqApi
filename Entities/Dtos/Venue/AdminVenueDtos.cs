@@ -31,6 +31,9 @@ namespace Entities.Dtos.Venue
         public int? ParkingCapacity { get; set; }
         public bool HasValetParking { get; set; }
         public string? CoverImageUrl { get; set; }
+
+        // Təqdimat videosu (YouTube, Vimeo və ya birbaşa link)
+        public string? VideoUrl { get; set; }
         public List<string> Features { get; set; } = new();
         public bool IsApproved { get; set; }
         public DateTime CreatedAt { get; set; }

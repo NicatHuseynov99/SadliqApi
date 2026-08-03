@@ -453,6 +453,7 @@ namespace Business.Concrete
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 Phone = dto.Phone,
+                VideoUrl = dto.VideoUrl,
                 ParkingCapacity = dto.ParkingCapacity,
                 HasValetParking = dto.HasValetParking,
                 CoverImageUrl = dto.CoverImageUrl,
@@ -479,10 +480,13 @@ namespace Business.Concrete
         // Owner öz sarayının məlumatlarını redaktə edir
         public async Task<IResult> UpdateAsync(int id, UpdateVenueDto dto, int ownerId)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == id && v.OwnerId == ownerId);
-
+            var venue = await _venueDal.GetAsync(v => v.Id == id);
             if (venue is null)
-                return new ErrorResult("Saray tapılmadı və ya sizə aid deyil.");
+                return new ErrorResult("Saray tapılmadı.");
+
+            // Sahiblik yoxlaması mərkəzi servisdədir — admin bütün saraylara çıxışlıdır
+            if (!await _access.IsOwnerAsync(id, ownerId))
+                return new ErrorResult("Bu saray sizə aid deyil.");
 
             venue.Name = dto.Name;
             venue.Description = dto.Description;
@@ -491,6 +495,7 @@ namespace Business.Concrete
             venue.Latitude = dto.Latitude;
             venue.Longitude = dto.Longitude;
             venue.Phone = dto.Phone;
+            venue.VideoUrl = dto.VideoUrl;
             venue.ParkingCapacity = dto.ParkingCapacity;
             venue.HasValetParking = dto.HasValetParking;
 

@@ -17,6 +17,9 @@ namespace Entities.Dtos.Venue
         // Media yükləmə hazır olana qədər şəkil linklə verilir
         public string? CoverImageUrl { get; set; }
 
+        // Təqdimat videosu (YouTube, Vimeo və ya birbaşa link)
+        public string? VideoUrl { get; set; }
+
         // Göndərilən siyahı sarayın özəlliklərini tam əvəz edir
         public List<string>? Features { get; set; }
     }

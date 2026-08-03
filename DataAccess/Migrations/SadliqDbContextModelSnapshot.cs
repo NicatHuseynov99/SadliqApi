@@ -22,6 +22,40 @@ namespace DataAccess.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Entities.Concrete.AppText", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Extra")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category", "Key")
+                        .IsUnique();
+
+                    b.ToTable("AppTexts");
+                });
+
             modelBuilder.Entity("Entities.Concrete.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -102,6 +136,38 @@ namespace DataAccess.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Cities");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Favorite", b =>
                 {
                     b.Property<int>("Id")
@@ -129,6 +195,41 @@ namespace DataAccess.Migrations
                     b.ToTable("Favorites");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.Feature", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Features");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Hall", b =>
                 {
                     b.Property<int>("Id")
@@ -140,9 +241,15 @@ namespace DataAccess.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("MinPrice")
                         .HasColumnType("numeric");
@@ -194,8 +301,14 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("HallId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("MediaType")
                         .HasColumnType("integer");
@@ -222,12 +335,18 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -258,12 +377,18 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("MenuId")
                         .HasColumnType("integer");
@@ -277,6 +402,60 @@ namespace DataAccess.Migrations
                     b.HasIndex("MenuId");
 
                     b.ToTable("MenuItems");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.PageView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PageType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Referrer")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("VenueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("PageViews");
                 });
 
             modelBuilder.Entity("Entities.Concrete.PasswordResetToken", b =>
@@ -312,6 +491,36 @@ namespace DataAccess.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.PlatformSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("PlatformSettings");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Reservation", b =>
                 {
                     b.Property<int>("Id")
@@ -330,6 +539,9 @@ namespace DataAccess.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateOnly>("EventDate")
                         .HasColumnType("date");
 
@@ -338,6 +550,9 @@ namespace DataAccess.Migrations
 
                     b.Property<int>("HallId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("MenuId")
                         .HasColumnType("integer");
@@ -386,7 +601,28 @@ namespace DataAccess.Migrations
                     b.Property<int?>("CustomerId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("HiddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("HiddenByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HiddenReason")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReportCount")
                         .HasColumnType("integer");
 
                     b.Property<int>("VenueId")
@@ -396,9 +632,99 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("IsHidden");
+
                     b.HasIndex("VenueId");
 
                     b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReviewEdit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EditedByName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EditedByRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("EditedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NewComment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("NewRating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OldComment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("OldRating")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReviewId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EditedByUserId");
+
+                    b.HasIndex("ReviewId");
+
+                    b.ToTable("ReviewEdits");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReviewReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReporterUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ReviewId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterUserId");
+
+                    b.HasIndex("ReviewId", "ReporterUserId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewReports");
                 });
 
             modelBuilder.Entity("Entities.Concrete.User", b =>
@@ -412,6 +738,9 @@ namespace DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -419,6 +748,12 @@ namespace DataAccess.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -469,11 +804,20 @@ namespace DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("HasValetParking")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<double?>("Latitude")
@@ -489,11 +833,21 @@ namespace DataAccess.Migrations
                     b.Property<int>("OwnerId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ParkingCapacity")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("VideoUrl")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("City");
+
+                    b.HasIndex("Latitude", "Longitude");
 
                     b.ToTable("Venues");
                 });
@@ -506,6 +860,12 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -514,6 +874,8 @@ namespace DataAccess.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("VenueId");
 
@@ -528,7 +890,13 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsCover")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<int>("SortOrder")
@@ -562,7 +930,13 @@ namespace DataAccess.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<int>("UserId")
@@ -679,6 +1053,16 @@ namespace DataAccess.Migrations
                     b.Navigation("Menu");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.PageView", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Entities.Concrete.PasswordResetToken", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -741,6 +1125,43 @@ namespace DataAccess.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReviewEdit", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "EditedByUser")
+                        .WithMany()
+                        .HasForeignKey("EditedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.Review", "Review")
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EditedByUser");
+
+                    b.Navigation("Review");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReviewReport", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "ReporterUser")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Entities.Concrete.Review", "Review")
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReporterUser");
+
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("Entities.Concrete.VenueFeature", b =>

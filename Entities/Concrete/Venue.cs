@@ -24,6 +24,10 @@ namespace Entities.Concrete
         // Sürücüsüz parklama xidməti
         public bool HasValetParking { get; set; }
         public string? CoverImageUrl { get; set; }
+
+        // Sarayın təqdimat videosu: YouTube/Vimeo linki və ya birbaşa fayl.
+        // Qalereyada birinci sırada göstərilir — video şəkildən güclü təsir bağışlayır.
+        public string? VideoUrl { get; set; }
         public bool IsApproved { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
