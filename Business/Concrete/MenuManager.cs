@@ -12,12 +12,18 @@ namespace Business.Concrete
         private readonly IMenuDal _menuDal;
         private readonly IMenuItemDal _menuItemDal;
         private readonly IVenueDal _venueDal;
+        private readonly IVenueAccessService _access;
 
-        public MenuManager(IMenuDal menuDal, IMenuItemDal menuItemDal, IVenueDal venueDal)
+        public MenuManager(
+            IMenuDal menuDal,
+            IMenuItemDal menuItemDal,
+            IVenueDal venueDal,
+            IVenueAccessService access)
         {
             _menuDal = menuDal;
             _menuItemDal = menuItemDal;
             _venueDal = venueDal;
+            _access = access;
         }
 
         // Sarayın bütün menyu paketlərini (50/60/70 AZN və s.) tərkibi ilə birgə qaytarır
@@ -47,9 +53,9 @@ namespace Business.Concrete
         // Menyunu və tərkibindəki yeməkləri (50/60/70 AZN paketi) birlikdə əlavə edir
         public async Task<IDataResult<Menu>> CreateAsync(CreateMenuDto dto, int ownerId)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == dto.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
-                return new ErrorDataResult<Menu>("Bu saray sizə aid deyil.");
+            // Sahiblik və təsdiq yoxlaması mərkəzi servisdədir
+            if (!await _access.CanModifyAsync(dto.VenueId, ownerId))
+                return new ErrorDataResult<Menu>("Bu saray sizə aid deyil və ya hələ təsdiqlənməyib.");
 
             var menu = new Menu
             {
@@ -84,9 +90,8 @@ namespace Business.Concrete
             if (menu is null)
                 return new ErrorResult("Menyu tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == menu.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
-                return new ErrorResult("Bu menyu sizə aid deyil.");
+            if (!await _access.CanModifyAsync(menu.VenueId, ownerId))
+                return new ErrorResult("Bu menyu sizə aid deyil və ya saray hələ təsdiqlənməyib.");
 
             menu.Name = dto.Name;
             menu.PricePerPerson = dto.PricePerPerson;
@@ -106,9 +111,8 @@ namespace Business.Concrete
             if (menu is null)
                 return new ErrorResult("Menyu tapılmadı.");
 
-            var venue = await _venueDal.GetAsync(v => v.Id == menu.VenueId && v.OwnerId == ownerId);
-            if (venue is null)
-                return new ErrorResult("Bu menyu sizə aid deyil.");
+            if (!await _access.CanModifyAsync(menu.VenueId, ownerId))
+                return new ErrorResult("Bu menyu sizə aid deyil və ya saray hələ təsdiqlənməyib.");
 
             await _menuDal.DeleteAsync(menu);
             return new SuccessResult("Menyu silindi.");

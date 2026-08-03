@@ -70,7 +70,7 @@ namespace Business.Concrete
         // əks halda bir sahib başqasının sarayına administrator təyin edə bilərdi.
         public async Task<IDataResult<VenueStaffDto>> CreateAsync(CreateVenueStaffDto dto, int ownerId)
         {
-            if (!await _access.IsOwnerAsync(dto.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(dto.VenueId, ownerId))
                 return new ErrorDataResult<VenueStaffDto>("Bu saray sizə aid deyil.");
 
             if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName))
@@ -161,7 +161,7 @@ namespace Business.Concrete
             if (staff is null)
                 return new ErrorResult("Administrator tapılmadı.");
 
-            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
                 return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
 
             var user = await _userDal.GetAsync(u => u.Id == staff.UserId);
@@ -183,7 +183,7 @@ namespace Business.Concrete
             if (staff is null)
                 return new ErrorResult("Administrator tapılmadı.");
 
-            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
                 return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
 
             // Köhnə təyinatlar silinir
@@ -217,7 +217,7 @@ namespace Business.Concrete
             if (staff is null)
                 return new ErrorResult("Administrator tapılmadı.");
 
-            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
                 return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
 
             await _staffDal.DeleteAsync(staff);
@@ -231,7 +231,7 @@ namespace Business.Concrete
             if (staff is null)
                 return new ErrorResult("Administrator tapılmadı.");
 
-            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
                 return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
 
             staff.IsActive = isActive;
@@ -250,7 +250,7 @@ namespace Business.Concrete
             if (staff is null)
                 return new ErrorResult("Administrator tapılmadı.");
 
-            if (!await _access.IsOwnerAsync(staff.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
                 return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
 
             var user = await _userDal.GetAsync(u => u.Id == staff.UserId);

@@ -10,6 +10,14 @@ namespace Business.Abstract
         // Sahib və ya həmin saraya təyin olunmuş aktiv administratordurmu
         Task<bool> CanManageAsync(int venueId, int userId);
 
+        // Dəyişiklik etmək icazəsi. İdarəetmədən fərqi: təsdiqlənməmiş saray
+        // yalnız baxış üçün açıqdır — sahibkar təsdiqi gözləyərkən heç nəyi dəyişə
+        // bilmir. Platforma admini və dəstək bu məhdudiyyətdən azaddır.
+        Task<bool> CanModifyAsync(int venueId, int userId);
+
+        // Zal səviyyəsində eyni qayda
+        Task<bool> CanModifyHallAsync(int hallId, int userId);
+
         // İstifadəçinin idarə edə bildiyi bütün sarayların Id-ləri (sahib olduqları + təyinatları)
         Task<List<int>> GetManagedVenueIdsAsync(int userId);
 

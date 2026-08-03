@@ -106,6 +106,7 @@ builder.Services.AddScoped<IAdminReservationService, AdminReservationManager>();
 builder.Services.AddScoped<IPlatformSettingsService, PlatformSettingsManager>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
+builder.Services.AddScoped<IVenueApplicationService, VenueApplicationManager>();
 
 // Mətn kataloqu: bazadan bir dəfə oxunur, yaddaşda saxlanılır
 builder.Services.AddSingleton<ITextCatalog, TextCatalog>();

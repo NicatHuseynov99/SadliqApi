@@ -200,7 +200,7 @@ namespace Business.Concrete
         // Sarayın rezerv sorğuları — sahib və ya həmin saraya təyin olunmuş administrator görə bilər
         public async Task<IDataResult<List<Reservation>>> GetByVenueAsync(int venueId, int ownerId)
         {
-            if (!await _access.CanManageAsync(venueId, ownerId))
+            if (!await _access.CanModifyAsync(venueId, ownerId))
                 return new ErrorDataResult<List<Reservation>>("Bu saray sizə aid deyil.");
 
             var allowedHalls = await _access.GetAllowedHallIdsAsync(ownerId);
@@ -250,7 +250,7 @@ namespace Business.Concrete
                 return new ErrorResult("Rezerv tapılmadı.");
 
             // Zal səviyyəsində yoxlama: administrator yalnız öz zallarının sorğularına cavab verir
-            if (!await _access.CanManageHallAsync(reservation.HallId, ownerId))
+            if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
             return await ApplyStatusAsync(reservation, dto.Status);

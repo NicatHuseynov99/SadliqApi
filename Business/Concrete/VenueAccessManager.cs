@@ -55,6 +55,34 @@ namespace Business.Concrete
             return staff is not null;
         }
 
+        // Təsdiqlənməmiş saray dondurulmuş vəziyyətdədir: sahibkar onu görür,
+        // amma nə redaktə edə, nə zal/menyu əlavə edə bilir. Belə olmasa müraciət
+        // yoxlanılarkən məlumat dəyişər və təsdiq mənasını itirər.
+        public async Task<bool> CanModifyAsync(int venueId, int userId)
+        {
+            if (await HasPlatformWideAccessAsync(userId))
+                return true;
+
+            if (!await CanManageAsync(venueId, userId))
+                return false;
+
+            var venue = await _venueDal.GetAsync(v => v.Id == venueId);
+            return venue?.IsApproved == true;
+        }
+
+        public async Task<bool> CanModifyHallAsync(int hallId, int userId)
+        {
+            var hall = await _hallDal.GetAsync(h => h.Id == hallId);
+            if (hall is null)
+                return false;
+
+            if (!await CanModifyAsync(hall.VenueId, userId))
+                return false;
+
+            var allowedHalls = await GetAllowedHallIdsAsync(userId);
+            return allowedHalls is null || allowedHalls.Contains(hallId);
+        }
+
         public async Task<List<int>> GetManagedVenueIdsAsync(int userId)
         {
             // SuperAdmin və dəstək admini bütün sarayları görür

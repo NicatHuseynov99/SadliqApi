@@ -485,7 +485,7 @@ namespace Business.Concrete
                 return new ErrorResult("Saray tapılmadı.");
 
             // Sahiblik yoxlaması mərkəzi servisdədir — admin bütün saraylara çıxışlıdır
-            if (!await _access.IsOwnerAsync(id, ownerId))
+            if (!await _access.CanModifyAsync(id, ownerId))
                 return new ErrorResult("Bu saray sizə aid deyil.");
 
             venue.Name = dto.Name;
@@ -549,7 +549,7 @@ namespace Business.Concrete
                 return new ErrorResult("Saray tapılmadı.");
 
             // Sahiblik yoxlaması mərkəzi servisdədir — admin bütün saraylara çıxışlıdır
-            if (!await _access.IsOwnerAsync(id, ownerId))
+            if (!await _access.CanModifyAsync(id, ownerId))
                 return new ErrorResult("Bu saray sizə aid deyil.");
 
             _audit.Set("VenueDeleted", $"«{venue.Name}» sarayını sildi", "Venue", venue.Id, venue.Id);

@@ -58,7 +58,7 @@ namespace Business.Concrete
         // Saraya yeni zal əlavə edir — sahib, dəstək və ya sarayın administratoru
         public async Task<IDataResult<Hall>> CreateAsync(CreateHallDto dto, int ownerId)
         {
-            if (!await _access.CanManageAsync(dto.VenueId, ownerId))
+            if (!await _access.CanModifyAsync(dto.VenueId, ownerId))
                 return new ErrorDataResult<Hall>("Bu saray sizə aid deyil.");
 
             var hall = new Hall
@@ -86,7 +86,7 @@ namespace Business.Concrete
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            if (!await _access.CanManageHallAsync(id, ownerId))
+            if (!await _access.CanModifyHallAsync(id, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             hall.Name = dto.Name;
@@ -126,7 +126,7 @@ namespace Business.Concrete
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            if (!await _access.CanManageHallAsync(id, ownerId))
+            if (!await _access.CanModifyHallAsync(id, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             await _hallDal.DeleteAsync(hall);
@@ -157,7 +157,7 @@ namespace Business.Concrete
             if (hall is null)
                 return new ErrorResult("Zal tapılmadı.");
 
-            if (!await _access.CanManageHallAsync(hallId, ownerId))
+            if (!await _access.CanModifyHallAsync(hallId, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
             var day = await _availabilityDal.GetAsync(a => a.HallId == hallId && a.Date == dto.Date);
