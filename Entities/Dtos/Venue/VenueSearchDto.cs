@@ -19,6 +19,10 @@ namespace Entities.Dtos.Venue
         // Minimum orta reytinq (məsələn 4.5)
         public double? MinRating { get; set; }
 
+        // Ən azı bu qədər avtomobil tutan parkinq. 0 və ya 1 verilsə
+        // «parkinq tutumu göstərilmiş saraylar» mənasını verir.
+        public int? MinParking { get; set; }
+
         // "rating-desc" (default), "price-asc", "price-desc"
         public string? Sort { get; set; }
 

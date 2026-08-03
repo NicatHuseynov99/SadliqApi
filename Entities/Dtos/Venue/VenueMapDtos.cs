@@ -13,6 +13,7 @@ namespace Entities.Dtos.Venue
         public int? Capacity { get; set; }
         public decimal? Budget { get; set; }
         public double? MinRating { get; set; }
+        public int? MinParking { get; set; }
         public List<string>? Features { get; set; }
 
         // Xəritənin görünən sahəsi (bounding box). Dördü də verilməlidir,
@@ -44,6 +45,7 @@ namespace Entities.Dtos.Venue
 
         public decimal? MinPrice { get; set; }
         public int? MaxCapacity { get; set; }
+        public int? ParkingCapacity { get; set; }
         public double Rating { get; set; }
         public int ReviewCount { get; set; }
 

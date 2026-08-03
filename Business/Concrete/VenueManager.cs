@@ -100,6 +100,11 @@ namespace Business.Concrete
                 filtered = filtered.Where(v =>
                     v.Reviews.Any() && v.Reviews.Average(r => (double)r.Rating) >= dto.MinRating);
 
+            // Parkinq tutumu göstərilməyən saraylar bu filtrdə görünmür —
+            // «bilmirik» ilə «yoxdur» eyni şey deyil, amma müştəriyə söz verə bilmərik
+            if (dto.MinParking.HasValue)
+                filtered = filtered.Where(v => v.ParkingCapacity >= dto.MinParking);
+
             // seçilmiş gündə ən azı bir zalı boş (Booked/Held olmayan) olan saraylar
             if (dto.Date.HasValue)
                 filtered = filtered.Where(v => v.Halls.Any(h =>
@@ -196,6 +201,7 @@ namespace Business.Concrete
                     Lng = v.Longitude!.Value,
                     MinPrice = v.Menus.Min(m => (decimal?)m.PricePerPerson),
                     MaxCapacity = v.Halls.Max(h => (int?)h.Capacity),
+                    v.ParkingCapacity,
                     Rating = v.Reviews.Average(r => (double?)r.Rating) ?? 0,
                     ReviewCount = v.Reviews.Count
                 })
@@ -213,6 +219,7 @@ namespace Business.Concrete
                 Longitude = r.Lng,
                 MinPrice = r.MinPrice,
                 MaxCapacity = r.MaxCapacity,
+                ParkingCapacity = r.ParkingCapacity,
                 Rating = Math.Round(r.Rating, 2),
                 ReviewCount = r.ReviewCount,
                 DistanceKm = dto.NearLat.HasValue && dto.NearLng.HasValue
@@ -287,6 +294,9 @@ namespace Business.Concrete
             if (dto.MinRating.HasValue)
                 filtered = filtered.Where(v =>
                     v.Reviews.Any() && v.Reviews.Average(r => (double)r.Rating) >= dto.MinRating);
+
+            if (dto.MinParking.HasValue)
+                filtered = filtered.Where(v => v.ParkingCapacity >= dto.MinParking);
 
             if (dto.Date.HasValue)
                 filtered = filtered.Where(v => v.Halls.Any(h =>
@@ -385,6 +395,8 @@ namespace Business.Concrete
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 Phone = dto.Phone,
+                ParkingCapacity = dto.ParkingCapacity,
+                HasValetParking = dto.HasValetParking,
                 CoverImageUrl = dto.CoverImageUrl,
                 IsApproved = true,
                 CreatedAt = DateTime.UtcNow
@@ -421,6 +433,8 @@ namespace Business.Concrete
             venue.Latitude = dto.Latitude;
             venue.Longitude = dto.Longitude;
             venue.Phone = dto.Phone;
+            venue.ParkingCapacity = dto.ParkingCapacity;
+            venue.HasValetParking = dto.HasValetParking;
 
             if (dto.CoverImageUrl is not null)
                 venue.CoverImageUrl = dto.CoverImageUrl;

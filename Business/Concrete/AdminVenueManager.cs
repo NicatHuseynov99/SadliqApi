@@ -116,6 +116,8 @@ namespace Business.Concrete
                     City = r.Venue.City,
                     Address = r.Venue.Address,
                     Phone = r.Venue.Phone,
+                    ParkingCapacity = r.Venue.ParkingCapacity,
+                    HasValetParking = r.Venue.HasValetParking,
                     CoverImageUrl = r.Venue.CoverImageUrl,
                     IsApproved = r.Venue.IsApproved,
                     CreatedAt = r.Venue.CreatedAt,

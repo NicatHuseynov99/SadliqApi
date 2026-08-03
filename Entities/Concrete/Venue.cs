@@ -15,6 +15,14 @@ namespace Entities.Concrete
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public string Phone { get; set; } = string.Empty;
+
+        // Neçə avtomobil yerləşir. Boş = məlumat verilməyib.
+        // «Parkinq var» özəlliyindən fərqli məlumatdır: qonaq sayına uyğun olub-olmadığı
+        // yalnız tutumdan bilinir.
+        public int? ParkingCapacity { get; set; }
+
+        // Sürücüsüz parklama xidməti
+        public bool HasValetParking { get; set; }
         public string? CoverImageUrl { get; set; }
         public bool IsApproved { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

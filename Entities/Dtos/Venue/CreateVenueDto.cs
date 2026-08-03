@@ -10,6 +10,10 @@ namespace Entities.Dtos.Venue
         public double? Longitude { get; set; }
         public string Phone { get; set; } = string.Empty;
 
+        // Parkinq tutumu (avtomobil sayı) və valet xidməti
+        public int? ParkingCapacity { get; set; }
+        public bool HasValetParking { get; set; }
+
         // Media yükləmə hazır olana qədər şəkil linklə verilir
         public string? CoverImageUrl { get; set; }
 
