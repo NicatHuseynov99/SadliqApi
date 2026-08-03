@@ -137,6 +137,164 @@ namespace Business.Concrete
             return new SuccessDataResult<PagedResult<Venue>>(result);
         }
 
+        // Xəritə rejimi. Adi axtarışdan iki fərqi var:
+        // 1) yalnız koordinatı olan saraylar qaytarılır;
+        // 2) səhifələmə əvəzinə xəritənin görünən sahəsi (bbox) süzgəci işləyir.
+        public async Task<IDataResult<VenueMapResultDto>> MapSearchAsync(VenueMapSearchDto dto)
+        {
+            var query = await _venueDal.GetListAsync(v => v.IsApproved);
+            var filtered = ApplyCommonFilters(query, dto);
+
+            // Süzgəcə uyğun gələnlərin hamısı — koordinatı olmayanlar da daxil
+            var totalMatched = await filtered.CountAsync();
+
+            var withCoordinates = filtered.Where(v => v.Latitude != null && v.Longitude != null);
+            var mapped = await withCoordinates.CountAsync();
+
+            // Xəritənin görünən sahəsi. Dünya xəritəsinin kənarını keçən hallarda
+            // (məsələn Sakit okean üzərində) west > east olur — onu ayrıca yoxlayırıq.
+            if (dto.North.HasValue && dto.South.HasValue && dto.East.HasValue && dto.West.HasValue)
+            {
+                var north = dto.North.Value;
+                var south = dto.South.Value;
+                var east = dto.East.Value;
+                var west = dto.West.Value;
+
+                withCoordinates = withCoordinates.Where(v =>
+                    v.Latitude! <= north && v.Latitude >= south);
+
+                withCoordinates = west <= east
+                    ? withCoordinates.Where(v => v.Longitude! <= east && v.Longitude >= west)
+                    : withCoordinates.Where(v => v.Longitude! >= west || v.Longitude <= east);
+            }
+
+            var limit = dto.Limit is < 1 or > 500 ? 200 : dto.Limit;
+
+            // «Mənə yaxın» seçilibsə sıralama BAZADA olmalıdır — əks halda limit
+            // təsadüfi sarayları kəsər və ən yaxınlar siyahıdan kənarda qalar.
+            // Haversine SQL-ə tərcümə olunmur, ona görə kiçik məsafələrdə eyni
+            // nəticəni verən sadə kvadrat fərq işlədilir; dəqiq km sonra hesablanır.
+            if (dto.NearLat.HasValue && dto.NearLng.HasValue)
+            {
+                var lat = dto.NearLat.Value;
+                var lng = dto.NearLng.Value;
+
+                withCoordinates = withCoordinates.OrderBy(v =>
+                    (v.Latitude!.Value - lat) * (v.Latitude.Value - lat) +
+                    (v.Longitude!.Value - lng) * (v.Longitude.Value - lng));
+            }
+
+            var rows = await withCoordinates
+                .Select(v => new
+                {
+                    v.Id,
+                    v.Name,
+                    v.City,
+                    v.Address,
+                    v.CoverImageUrl,
+                    Lat = v.Latitude!.Value,
+                    Lng = v.Longitude!.Value,
+                    MinPrice = v.Menus.Min(m => (decimal?)m.PricePerPerson),
+                    MaxCapacity = v.Halls.Max(h => (int?)h.Capacity),
+                    Rating = v.Reviews.Average(r => (double?)r.Rating) ?? 0,
+                    ReviewCount = v.Reviews.Count
+                })
+                .Take(limit)
+                .ToListAsync();
+
+            var items = rows.Select(r => new VenueMapItemDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                City = r.City,
+                Address = r.Address,
+                CoverImageUrl = r.CoverImageUrl,
+                Latitude = r.Lat,
+                Longitude = r.Lng,
+                MinPrice = r.MinPrice,
+                MaxCapacity = r.MaxCapacity,
+                Rating = Math.Round(r.Rating, 2),
+                ReviewCount = r.ReviewCount,
+                DistanceKm = dto.NearLat.HasValue && dto.NearLng.HasValue
+                    ? Math.Round(Distance(dto.NearLat.Value, dto.NearLng.Value, r.Lat, r.Lng), 1)
+                    : null
+            }).ToList();
+
+            // «Mənə yaxın» seçilibsə ən yaxınlar öndə olsun
+            if (dto.NearLat.HasValue && dto.NearLng.HasValue)
+                items = items.OrderBy(i => i.DistanceKm).ToList();
+
+            var result = new VenueMapResultDto
+            {
+                Items = items,
+                TotalMatched = totalMatched,
+                WithoutCoordinates = totalMatched - mapped
+            };
+
+            return new SuccessDataResult<VenueMapResultDto>(result);
+        }
+
+        // İki koordinat arasındakı məsafə (km) — Haversine düsturu.
+        // Nəticə quş uçuşu məsafəsidir, yol məsafəsi deyil.
+        private static double Distance(double lat1, double lng1, double lat2, double lng2)
+        {
+            const double earthRadiusKm = 6371;
+
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLng = (lng2 - lng1) * Math.PI / 180;
+
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
+                    Math.Sin(dLng / 2) * Math.Sin(dLng / 2);
+
+            return earthRadiusKm * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        }
+
+        // Siyahı və xəritə eyni süzgəcləri işlətməlidir — məntiq bir yerdə saxlanılır
+        private static IQueryable<Venue> ApplyCommonFilters(IQueryable<Venue> query, VenueMapSearchDto dto)
+        {
+            var filtered = query;
+
+            if (!string.IsNullOrWhiteSpace(dto.Q))
+            {
+                var term = $"%{dto.Q.Trim()}%";
+                filtered = filtered.Where(v =>
+                    EF.Functions.ILike(v.Name, term) || EF.Functions.ILike(v.Address, term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.City))
+                filtered = filtered.Where(v => v.City.ToLower() == dto.City.ToLower());
+
+            if (dto.MinPrice.HasValue)
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson >= dto.MinPrice));
+
+            if (dto.MaxPrice.HasValue)
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson <= dto.MaxPrice));
+
+            if (dto.Capacity.HasValue)
+                filtered = filtered.Where(v => v.Halls.Any(h => h.Capacity >= dto.Capacity));
+
+            if (dto.Features is { Count: > 0 })
+                foreach (var feature in dto.Features)
+                    filtered = filtered.Where(v => v.Features.Any(f => f.Name == feature));
+
+            if (dto.Budget.HasValue)
+            {
+                var guests = dto.Capacity is > 0 ? dto.Capacity.Value : 1;
+                filtered = filtered.Where(v => v.Menus.Any(m => m.PricePerPerson * guests <= dto.Budget));
+            }
+
+            if (dto.MinRating.HasValue)
+                filtered = filtered.Where(v =>
+                    v.Reviews.Any() && v.Reviews.Average(r => (double)r.Rating) >= dto.MinRating);
+
+            if (dto.Date.HasValue)
+                filtered = filtered.Where(v => v.Halls.Any(h =>
+                    !h.Availability.Any(a => a.Date == dto.Date && a.Status != AvailabilityStatus.Available)));
+
+            return filtered;
+        }
+
         // Filtr panelinin seçimlərini bazadakı real dataya görə qurur:
         // hansı şəhərlər var, hansı özəlliklər neçə sarayda var, qiymət və tutum aralığı nədir
         public async Task<IDataResult<VenueFilterOptionsDto>> GetFilterOptionsAsync()

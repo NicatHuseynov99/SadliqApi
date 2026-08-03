@@ -239,6 +239,9 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
 
             // Şəhər və özəllik adları mətn olduğu üçün süzgəc sorğuları indeks istəyir
             b.Entity<Venue>().HasIndex(v => v.City);
+
+            // Xəritə sorğusu koordinat aralığı üzrə süzür
+            b.Entity<Venue>().HasIndex(v => new { v.Latitude, v.Longitude });
             b.Entity<VenueFeature>().HasIndex(f => f.Name);
 
             base.OnModelCreating(b);

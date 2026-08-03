@@ -10,6 +10,9 @@ namespace Business.Abstract
         Task<IDataResult<List<Venue>>> GetAllAsync();
         Task<IDataResult<PagedResult<Venue>>> SearchAsync(VenueSearchDto dto);
         Task<IDataResult<VenueFilterOptionsDto>> GetFilterOptionsAsync();
+
+        // Xəritə rejimi — markerlər üçün yüngül siyahı
+        Task<IDataResult<VenueMapResultDto>> MapSearchAsync(VenueMapSearchDto dto);
         Task<IDataResult<Venue>> GetByIdAsync(int id);
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);
