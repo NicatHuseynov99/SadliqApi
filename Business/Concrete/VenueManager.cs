@@ -404,7 +404,7 @@ namespace Business.Concrete
         }
 
         // Tək sarayın bütün detallarını (şəkillər, zallar+media+dolu günlər, menyular+tərkib) qaytarır
-        public async Task<IDataResult<Venue>> GetByIdAsync(int id)
+        public async Task<IDataResult<Venue>> GetByIdAsync(int id, int? viewerUserId = null)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
 
@@ -419,9 +419,19 @@ namespace Business.Concrete
                 .Include(v => v.Reviews)
                 .FirstOrDefaultAsync();
 
-            return venue is null
-                ? new ErrorDataResult<Venue>("Saray tapılmadı.")
-                : new SuccessDataResult<Venue>(venue);
+            if (venue is null)
+                return new ErrorDataResult<Venue>("Saray tapılmadı.");
+
+            // Təsdiqlənməmiş saray yalnız öz sahibinə və platforma komandasına görünür.
+            // Əks halda linki bilən istənilən adam yoxlanışdakı məkanı aça bilərdi.
+            if (!venue.IsApproved)
+            {
+                var canSee = viewerUserId.HasValue && await _access.CanManageAsync(id, viewerUserId.Value);
+                if (!canSee)
+                    return new ErrorDataResult<Venue>("Saray tapılmadı.");
+            }
+
+            return new SuccessDataResult<Venue>(venue);
         }
 
         // Owner-in özünə aid bütün sarayları (təsdiqli və ya təsdiqsiz) görməsi

@@ -16,7 +16,7 @@ namespace Business.Abstract
 
         // Axtarış qutusunun təklifləri
         Task<IDataResult<List<SearchSuggestionDto>>> SuggestAsync(string? q);
-        Task<IDataResult<Venue>> GetByIdAsync(int id);
+        Task<IDataResult<Venue>> GetByIdAsync(int id, int? viewerUserId = null);
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);
         Task<IResult> UpdateAsync(int id, UpdateVenueDto dto, int ownerId);

@@ -61,7 +61,12 @@ namespace SadliqApi.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _venueService.GetByIdAsync(id);
+            // Təsdiqlənməmiş saray yalnız sahibinə və platforma komandasına görünür
+            var viewerId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid)
+                ? uid
+                : (int?)null;
+
+            var result = await _venueService.GetByIdAsync(id, viewerId);
             if (!result.Success)
                 return NotFound(result);
             return Ok(result);

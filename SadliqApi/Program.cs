@@ -171,6 +171,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Yüklənən şəkil və videolar wwwroot/uploads qovluğundan verilir
+app.UseStaticFiles();
+
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
