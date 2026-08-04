@@ -2,12 +2,14 @@ using Business.Abstract;
 using Entities.Dtos.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [EnableRateLimiting("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

@@ -9,5 +9,45 @@ namespace Entities.Concrete
     public enum UserRole { Customer, Owner, SuperAdmin, VenueAdmin, Support }
     public enum MediaType { Image, Video }
     public enum AvailabilityStatus { Available, Booked, Held }
-    public enum ReservationStatus { Pending, Confirmed, Rejected, Cancelled }
+    // Expired = sahib vaxtında cavab vermədi, sorğu öz-özünə bağlandı və tarix boşaldı
+    public enum ReservationStatus { Pending, Confirmed, Rejected, Cancelled, Expired }
+
+    // Bildirişin növü. «Announcement»-dan başqa hamısı sistem bildirişidir —
+    // xidmətin bir hissəsi olduğu üçün söndürülə bilmir.
+    public enum NotificationType
+    {
+        Announcement = 0,
+        ReservationCreated = 1,
+        ReservationStatusChanged = 2,
+        ReservationCancelled = 3,
+        ReservationReminder = 4,
+        ReservationExpired = 5,
+        VenueApproved = 6,
+        VenueRejected = 7,
+        ReviewReceived = 8,
+        SystemMessage = 9
+    }
+
+    // Bir bildiriş eyni anda bir neçə kanaldan gedə bilər
+    [Flags]
+    public enum NotificationChannels
+    {
+        None = 0,
+        InApp = 1,
+        Email = 2,
+        Sms = 4
+    }
+
+    public enum CampaignStatus { Draft, Scheduled, Sending, Sent, Failed, Cancelled }
+
+    // Auditoriyanı davranışa görə daraltmaq üçün hazır süzgəclər
+    public enum AudienceBehavior
+    {
+        Any = 0,
+        ReservedRecently = 1,      // son N gündə rezerv sorğusu göndərənlər
+        FavoritedNotReserved = 2,  // saray bəyənib, amma sorğu göndərməyənlər
+        ReservationRejected = 3,   // sorğusu rədd edilmiş və ya vaxtı keçmiş
+        Inactive = 4,              // N gündür heç bir hərəkəti olmayanlar
+        NeverReserved = 5          // heç vaxt sorğu göndərməyənlər
+    }
 }

@@ -16,8 +16,15 @@ namespace Business.Concrete
         private readonly IMenuDal _menuDal;
         private readonly IVenueAccessService _access;
         private readonly IUserDal _userDal;
-        private readonly IEmailService _emailService;
+        private readonly INotificationService _notifications;
         private readonly IAuditContext _audit;
+        private readonly IPlatformSettingsService _settings;
+
+        // Tutulmanın ilkin müddəti — admin paneldən dəyişdirilə bilər
+        private const int DefaultHoldHours = 48;
+
+        // Bir müştərinin eyni anda cavab gözləyən sorğularının sayı
+        private const int MaxOpenRequestsPerCustomer = 3;
 
         public ReservationManager(
             IReservationDal reservationDal,
@@ -27,10 +34,12 @@ namespace Business.Concrete
             IMenuDal menuDal,
             IVenueAccessService access,
             IUserDal userDal,
-            IEmailService emailService,
-            IAuditContext audit)
+            INotificationService notifications,
+            IAuditContext audit,
+            IPlatformSettingsService settings)
         {
             _audit = audit;
+            _settings = settings;
             _reservationDal = reservationDal;
             _availabilityDal = availabilityDal;
             _venueDal = venueDal;
@@ -38,7 +47,7 @@ namespace Business.Concrete
             _menuDal = menuDal;
             _access = access;
             _userDal = userDal;
-            _emailService = emailService;
+            _notifications = notifications;
         }
 
         // Zal + gün + menyu seçib rezerv sorğusu göndərir.
@@ -79,6 +88,27 @@ namespace Business.Concrete
             if (string.IsNullOrWhiteSpace(dto.ContactPhone))
                 return new ErrorDataResult<Reservation>("Əlaqə telefonu boş ola bilməz.");
 
+            // Bir müştəri eyni anda çox tarix bağlaya bilməz — cavabsız sorğularla
+            // sarayın təqvimini doldurmağın qarşısını alır
+            var openQuery = await _reservationDal.GetListAsync(
+                r => r.CustomerId == customerId && r.Status == ReservationStatus.Pending);
+
+            var openCount = await openQuery.CountAsync();
+            if (openCount >= MaxOpenRequestsPerCustomer)
+                return new ErrorDataResult<Reservation>(
+                    $"Eyni vaxtda ən çox {MaxOpenRequestsPerCustomer} açıq sorğunuz ola bilər. " +
+                    "Cavab gözləyən sorğulardan birini ləğv edin.");
+
+            // Eyni zala eyni tarixə təkrar sorğu göndərilməsin
+            var duplicate = await _reservationDal.GetAsync(
+                r => r.CustomerId == customerId
+                     && r.HallId == dto.HallId
+                     && r.EventDate == dto.EventDate
+                     && r.Status == ReservationStatus.Pending);
+
+            if (duplicate is not null)
+                return new ErrorDataResult<Reservation>("Bu zala həmin tarix üçün artıq sorğu göndərmisiniz.");
+
             var existingAvailability = await _availabilityDal.GetAsync(
                 a => a.HallId == dto.HallId && a.Date == dto.EventDate);
 
@@ -101,19 +131,25 @@ namespace Business.Concrete
 
             await _reservationDal.AddAsync(reservation);
 
-            // Sorğu göndərilən kimi günü "tutulmuş" kimi işarələyirik ki, başqası eyni günə sorğu göndərməsin
+            // Sorğu göndərilən kimi günü "tutulmuş" kimi işarələyirik ki, başqası eyni günə
+            // sorğu göndərməsin. Tutulma müddətlidir: sahib cavab verməsə özü boşalır.
+            var holdHours = await _settings.GetIntAsync("reservation_hold_hours", DefaultHoldHours);
+            var holdUntil = DateTime.UtcNow.AddHours(holdHours);
+
             if (existingAvailability == null)
             {
                 await _availabilityDal.AddAsync(new HallAvailability
                 {
                     HallId = dto.HallId,
                     Date = dto.EventDate,
-                    Status = AvailabilityStatus.Held
+                    Status = AvailabilityStatus.Held,
+                    HoldExpiresAt = holdUntil
                 });
             }
             else
             {
                 existingAvailability.Status = AvailabilityStatus.Held;
+                existingAvailability.HoldExpiresAt = holdUntil;
                 await _availabilityDal.UpdateAsync(existingAvailability);
             }
 
@@ -128,60 +164,80 @@ namespace Business.Concrete
             return new SuccessDataResult<Reservation>(reservation, "Rezerv sorğusu göndərildi.");
         }
 
-        // Sahibə yeni rezerv sorğusu barədə məktub
+        // Sahibə yeni sorğu barədə bildiriş. Kanalları bildiriş servisi seçir —
+        // burada yalnız mətn qurulur.
         private async Task NotifyOwnerAsync(Venue venue, Hall hall, Menu menu, Reservation reservation)
         {
-            var owner = await _userDal.GetAsync(u => u.Id == venue.OwnerId);
-            if (owner is null || string.IsNullOrWhiteSpace(owner.Email))
-                return;
+            var body =
+                $"«{venue.Name}» üçün yeni sorğu daxil oldu.\n" +
+                $"Zal: {hall.Name}\n" +
+                $"Tarix: {reservation.EventDate:dd.MM.yyyy}\n" +
+                $"Qonaq sayı: {reservation.GuestCount}\n" +
+                $"Menyu: {menu.Name} ({menu.PricePerPerson} ₼ / nəfər)\n" +
+                $"Əlaqə: {reservation.ContactPhone}\n\n" +
+                "Sorğunu idarəetmə panelindən təsdiqləyə və ya rədd edə bilərsiniz.";
 
-            var body = $@"
-                <div style='font-family:Segoe UI,Arial,sans-serif;color:#1a1118'>
-                  <h2 style='color:#721438'>Yeni rezerv sorğusu</h2>
-                  <p><b>{venue.Name}</b> üçün yeni sorğu daxil oldu.</p>
-                  <ul>
-                    <li>Zal: {hall.Name}</li>
-                    <li>Tarix: {reservation.EventDate:dd.MM.yyyy}</li>
-                    <li>Qonaq sayı: {reservation.GuestCount}</li>
-                    <li>Menyu: {menu.Name} ({menu.PricePerPerson} ₼ / nəfər)</li>
-                    <li>Əlaqə: {reservation.ContactPhone}</li>
-                  </ul>
-                  <p>Sorğunu idarəetmə panelindən təsdiqləyə və ya rədd edə bilərsiniz.</p>
-                </div>";
-
-            await _emailService.SendAsync(owner.Email, $"Yeni rezerv sorğusu — {venue.Name}", body);
+            await _notifications.NotifyAsync(
+                venue.OwnerId,
+                new NotificationMessage(
+                    NotificationType.ReservationCreated,
+                    $"Yeni rezerv sorğusu — {venue.Name}",
+                    body,
+                    "/panel"));
         }
 
-        // Müştəriyə sorğunun nəticəsi barədə məktub
+        // Müştəri ləğv edəndə sahibə xəbər — tarix yenidən boşdur
+        private async Task NotifyOwnerOfCancellationAsync(Reservation reservation)
+        {
+            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
+            if (venue is null) return;
+
+            var hall = await _hallDal.GetAsync(h => h.Id == reservation.HallId);
+
+            await _notifications.NotifyAsync(
+                venue.OwnerId,
+                new NotificationMessage(
+                    NotificationType.ReservationCancelled,
+                    $"Rezerv ləğv edildi — {venue.Name}",
+                    $"«{hall?.Name ?? "Zal"}» — {reservation.EventDate:dd.MM.yyyy} tarixi üçün sorğu " +
+                    "müştəri tərəfindən ləğv olundu. Həmin gün yenidən boşdur.",
+                    "/panel"));
+        }
+
+        // Müştəriyə sorğunun nəticəsi barədə bildiriş
         private async Task NotifyCustomerAsync(Reservation reservation, ReservationStatus status)
         {
-            var customer = await _userDal.GetAsync(u => u.Id == reservation.CustomerId);
-            if (customer is null || string.IsNullOrWhiteSpace(customer.Email))
-                return;
-
             var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
             var venueName = venue?.Name ?? "Saray";
+            var date = reservation.EventDate.ToString("dd.MM.yyyy");
 
-            var (title, message) = status switch
+            var (title, message, type) = status switch
             {
-                ReservationStatus.Confirmed => ("Rezerviniz təsdiqləndi",
-                    $"<b>{venueName}</b> üçün {reservation.EventDate:dd.MM.yyyy} tarixinə göndərdiyiniz sorğu təsdiqləndi. Təbrik edirik!"),
-                ReservationStatus.Rejected => ("Rezerv sorğunuz rədd edildi",
-                    $"<b>{venueName}</b> üçün {reservation.EventDate:dd.MM.yyyy} tarixinə göndərdiyiniz sorğu təəssüf ki qəbul olunmadı. Başqa tarix və ya saray seçə bilərsiniz."),
-                _ => (string.Empty, string.Empty)
+                ReservationStatus.Confirmed => (
+                    "Rezerviniz təsdiqləndi",
+                    $"«{venueName}» üçün {date} tarixinə göndərdiyiniz sorğu təsdiqləndi. Təbrik edirik!",
+                    NotificationType.ReservationStatusChanged),
+
+                ReservationStatus.Rejected => (
+                    "Rezerv sorğunuz rədd edildi",
+                    $"«{venueName}» üçün {date} tarixinə göndərdiyiniz sorğu təəssüf ki qəbul olunmadı. " +
+                    "Başqa tarix və ya saray seçə bilərsiniz.",
+                    NotificationType.ReservationStatusChanged),
+
+                ReservationStatus.Expired => (
+                    "Rezerv sorğunuz vaxtı keçdi",
+                    $"«{venueName}» üçün {date} tarixinə göndərdiyiniz sorğuya vaxtında cavab verilmədi " +
+                    "və sorğu bağlandı. Sarayla birbaşa əlaqə saxlaya bilərsiniz.",
+                    NotificationType.ReservationExpired),
+
+                _ => (string.Empty, string.Empty, NotificationType.SystemMessage)
             };
 
-            if (string.IsNullOrEmpty(title))
-                return;
+            if (string.IsNullOrEmpty(title)) return;
 
-            var body = $@"
-                <div style='font-family:Segoe UI,Arial,sans-serif;color:#1a1118'>
-                  <h2 style='color:#721438'>{title}</h2>
-                  <p>{message}</p>
-                  <p style='color:#868e96;font-size:13px'>Şadlıq Sarayları</p>
-                </div>";
-
-            await _emailService.SendAsync(customer.Email, title, body);
+            await _notifications.NotifyAsync(
+                reservation.CustomerId,
+                new NotificationMessage(type, title, message, "/rezervlerim"));
         }
 
         // Müştərinin öz göndərdiyi bütün rezerv sorğularının siyahısı (status izləmək üçün)
@@ -285,9 +341,14 @@ namespace Business.Concrete
                 availability.Status = dto.Status switch
                 {
                     ReservationStatus.Confirmed => AvailabilityStatus.Booked,
-                    ReservationStatus.Rejected or ReservationStatus.Cancelled => AvailabilityStatus.Available,
+                    ReservationStatus.Rejected
+                        or ReservationStatus.Cancelled
+                        or ReservationStatus.Expired => AvailabilityStatus.Available,
                     _ => availability.Status
                 };
+
+                // Cavab verildi — müddət sahəsi artıq lazım deyil
+                availability.HoldExpiresAt = null;
                 await _availabilityDal.UpdateAsync(availability);
             }
 
@@ -328,8 +389,17 @@ namespace Business.Concrete
             if (availability != null)
             {
                 availability.Status = AvailabilityStatus.Available;
+                availability.HoldExpiresAt = null;
                 await _availabilityDal.UpdateAsync(availability);
             }
+
+            // Sahib boş qalan tarixdən xəbər tutmalıdır — yoxsa günü satmaq şansını itirir
+            await NotifyOwnerOfCancellationAsync(reservation);
+
+            _audit.Set(
+                "ReservationCancelled",
+                $"{reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu ləğv etdi",
+                "Reservation", reservation.Id, reservation.VenueId);
 
             return new SuccessResult("Rezerv ləğv edildi.");
         }

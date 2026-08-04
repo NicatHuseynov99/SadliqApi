@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace SadliqApi.Controllers
 {
@@ -29,6 +30,7 @@ namespace SadliqApi.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [EnableRateLimiting("upload")]
         [RequestSizeLimit(110L * 1024 * 1024)]
         public async Task<IActionResult> Upload(IFormFile file)
         {
@@ -53,6 +55,15 @@ namespace SadliqApi.Controllers
                 {
                     success = false,
                     message = $"Fayl çox böyükdür. Ən çox {limit / 1024 / 1024} MB olmalıdır."
+                });
+
+            // Uzantı yalançı ola bilər: .jpg adlı fayl icra faylı da ola bilər.
+            // Ona görə faylın ilk baytları — həqiqi imzası — yoxlanılır.
+            if (!await HasValidSignatureAsync(file, isVideo))
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Faylın məzmunu adına uyğun deyil."
                 });
 
             try
@@ -84,6 +95,37 @@ namespace SadliqApi.Controllers
                 _logger.LogError(ex, "Fayl yüklənə bilmədi: {Name}", file.FileName);
                 return StatusCode(500, new { success = false, message = "Fayl saxlanıla bilmədi." });
             }
+        }
+
+        // Faylın ilk baytları («magic bytes») formatın həqiqi göstəricisidir.
+        // Şəkillər üçün dəqiq imzalar, videolar üçün ISO/WebM konteyner nişanları yoxlanılır.
+        private static async Task<bool> HasValidSignatureAsync(IFormFile file, bool isVideo)
+        {
+            var head = new byte[16];
+
+            await using (var stream = file.OpenReadStream())
+            {
+                var read = await stream.ReadAsync(head);
+                if (read < 12) return false;
+            }
+
+            bool Starts(params byte[] signature) =>
+                head.Take(signature.Length).SequenceEqual(signature);
+
+            if (!isVideo)
+            {
+                return Starts(0xFF, 0xD8, 0xFF)                                      // jpg
+                    || Starts(0x89, 0x50, 0x4E, 0x47)                                // png
+                    || Starts(0x47, 0x49, 0x46, 0x38)                                // gif
+                    || (Starts(0x52, 0x49, 0x46, 0x46)                               // webp: RIFF….WEBP
+                        && head.Skip(8).Take(4).SequenceEqual(new byte[] { 0x57, 0x45, 0x42, 0x50 }));
+            }
+
+            // mp4/mov: 4–8-ci baytlarda «ftyp»; webm/mkv: EBML başlığı
+            var isIsoContainer = head.Skip(4).Take(4)
+                .SequenceEqual(new byte[] { 0x66, 0x74, 0x79, 0x70 });
+
+            return isIsoContainer || Starts(0x1A, 0x45, 0xDF, 0xA3);
         }
     }
 }

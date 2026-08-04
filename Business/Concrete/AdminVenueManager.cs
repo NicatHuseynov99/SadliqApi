@@ -14,13 +14,16 @@ namespace Business.Concrete
         private readonly IUserDal _userDal;
         private readonly IReservationDal _reservationDal;
         private readonly IAuditContext _audit;
+        private readonly INotificationService _notifications;
 
         public AdminVenueManager(
             IVenueDal venueDal,
             IUserDal userDal,
             IReservationDal reservationDal,
-            IAuditContext audit)
+            IAuditContext audit,
+            INotificationService notifications)
         {
+            _notifications = notifications;
             _venueDal = venueDal;
             _userDal = userDal;
             _reservationDal = reservationDal;
@@ -168,6 +171,19 @@ namespace Business.Concrete
                     ? $"«{venue.Name}» sarayını təsdiqlədi"
                     : $"«{venue.Name}» sarayının təsdiqini geri aldı",
                 "Venue", venue.Id, venue.Id);
+
+            // Sahibkar gözlədiyi cavabı dərhal görməlidir
+            await _notifications.NotifyAsync(
+                venue.OwnerId,
+                new NotificationMessage(
+                    dto.IsApproved ? NotificationType.VenueApproved : NotificationType.VenueRejected,
+                    dto.IsApproved
+                        ? $"«{venue.Name}» təsdiqləndi"
+                        : $"«{venue.Name}» saytdan çıxarıldı",
+                    dto.IsApproved
+                        ? "Sarayınız yoxlanıldı və saytda göründü. Artıq müştərilər onu görə və rezerv sorğusu göndərə bilər."
+                        : "Sarayınızın təsdiqi geri alındı və saytda görünmür. Səbəbi öyrənmək üçün bizimlə əlaqə saxlayın.",
+                    "/panel"));
 
             return new SuccessResult(dto.IsApproved
                 ? "Saray təsdiqləndi və saytda göründü."

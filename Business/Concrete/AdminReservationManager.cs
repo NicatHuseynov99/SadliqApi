@@ -192,6 +192,7 @@ namespace Business.Concrete
             ReservationStatus.Pending => "Gözləyir",
             ReservationStatus.Confirmed => "Təsdiqlənib",
             ReservationStatus.Rejected => "Rədd edilib",
+            ReservationStatus.Expired => "Vaxtı keçib",
             _ => "Ləğv edilib"
         };
     }

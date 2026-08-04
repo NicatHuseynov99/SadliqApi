@@ -11,5 +11,9 @@ namespace Entities.Concrete
 
         public DateOnly Date { get; set; }
         public AvailabilityStatus Status { get; set; } = AvailabilityStatus.Available;
+
+        // «Held» vəziyyətinin son tarixi. Sahib bu vaxta qədər cavab verməsə,
+        // gün öz-özünə boşalır — yoxsa cavabsız bir sorğu tarixi əbədi bağlayır.
+        public DateTime? HoldExpiresAt { get; set; }
     }
 }

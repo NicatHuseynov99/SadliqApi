@@ -26,6 +26,9 @@ namespace Entities.Concrete
         public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // Sahibə xatırlatma göndərilibsə — bir dəfədən çox göndərilməsin deyə
+        public DateTime? OwnerRemindedAt { get; set; }
+
         // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }

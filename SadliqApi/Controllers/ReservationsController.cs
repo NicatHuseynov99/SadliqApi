@@ -2,6 +2,7 @@ using Business.Abstract;
 using Entities.Dtos.Reservation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace SadliqApi.Controllers
@@ -9,6 +10,7 @@ namespace SadliqApi.Controllers
     [Route("api/[controller]/[action]")]
     [ApiController]
     [Authorize]
+    [EnableRateLimiting("write")]
     public class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;

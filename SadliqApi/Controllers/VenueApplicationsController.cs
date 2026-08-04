@@ -2,6 +2,7 @@ using Business.Abstract;
 using Entities.Dtos.Venue;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace SadliqApi.Controllers
@@ -11,6 +12,7 @@ namespace SadliqApi.Controllers
     // mövcud hesab işlədilir.
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [EnableRateLimiting("write")]
     public class VenueApplicationsController : ControllerBase
     {
         private readonly IVenueApplicationService _service;

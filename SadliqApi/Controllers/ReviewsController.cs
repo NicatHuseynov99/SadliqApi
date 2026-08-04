@@ -2,12 +2,14 @@ using Business.Abstract;
 using Entities.Dtos.Review;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [EnableRateLimiting("write")]
     public class ReviewsController : ControllerBase
     {
         private readonly IReviewService _reviewService;

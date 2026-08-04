@@ -1,5 +1,6 @@
 using Business.Abstract;
 using Business.Concrete;
+using Business.Concrete.Notifications;
 using Business.Security.Jwt;
 using Business.Utilities.Email;
 using SadliqApi.Audit;
@@ -13,6 +14,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,6 +90,10 @@ builder.Services.AddScoped<IReviewEditDal, EfReviewEditDal>();
 builder.Services.AddScoped<ICityDal, EfCityDal>();
 builder.Services.AddScoped<IFeatureDal, EfFeatureDal>();
 builder.Services.AddScoped<IAppTextDal, EfAppTextDal>();
+builder.Services.AddScoped<INotificationDal, EfNotificationDal>();
+builder.Services.AddScoped<INotificationCampaignDal, EfNotificationCampaignDal>();
+builder.Services.AddScoped<INotificationPreferenceDal, EfNotificationPreferenceDal>();
+builder.Services.AddScoped<IAudienceDal, EfAudienceDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -108,6 +116,15 @@ builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
 builder.Services.AddScoped<IVenueApplicationService, VenueApplicationManager>();
 
+// Bildiriş axını: kanallar sıra ilə qeydiyyatdan keçir, göndərici onları
+// istifadəçinin seçimlərinə görə süzür. Yeni kanal əlavə etmək = bir sətir.
+builder.Services.AddScoped<INotificationChannel, InAppNotificationChannel>();
+builder.Services.AddScoped<INotificationChannel, EmailNotificationChannel>();
+builder.Services.AddScoped<INotificationChannel, SmsNotificationChannel>();
+builder.Services.AddScoped<INotificationService, NotificationManager>();
+builder.Services.AddScoped<INotificationCampaignService, NotificationCampaignManager>();
+builder.Services.AddHostedService<SadliqApi.Notifications.CampaignDispatchService>();
+
 // Mətn kataloqu: bazadan bir dəfə oxunur, yaddaşda saxlanılır
 builder.Services.AddSingleton<ITextCatalog, TextCatalog>();
 
@@ -120,6 +137,12 @@ builder.Services.AddHostedService<AuditBackgroundService>();
 builder.Services.AddSingleton<IVisitWriter, VisitWriter>();
 builder.Services.AddHostedService<VisitBackgroundService>();
 builder.Services.AddHostedService<VisitCleanupService>();
+
+// Cavabsız rezerv sorğuları: müddəti bitən tutulmalar boşaldılır, sahibə xatırladılır
+builder.Services.AddHostedService<SadliqApi.Reservations.ReservationHoldService>();
+
+// Heç bir saraya bağlanmayan köhnə yüklənmiş fayllar gündə bir dəfə silinir
+builder.Services.AddHostedService<SadliqApi.Files.UploadCleanupService>();
 
 // E-poçt: SMTP konfiqurasiya olunmayıbsa məktublar log-a yazılır
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("EmailOptions"));
@@ -145,6 +168,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Sorğu tezliyinə məhdudiyyət. Hədəf üç yerdir: parol sınağı, rəy spamı,
+// fayl yükləmə. Limit IP üzrədir — hesab açmadan da hücum etmək olar.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"success\":false,\"message\":\"Çox sayda sorğu göndərdiniz. Bir az gözləyin.\"}", token);
+    };
+
+    // Giriş, qeydiyyat, parol bərpası — dəqiqədə 8 cəhd
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        ClientKey(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(1) }));
+
+    // Rəy, rezerv, şikayət kimi məzmun yaradan əməliyyatlar — dəqiqədə 10
+    options.AddPolicy("write", context => RateLimitPartition.GetFixedWindowLimiter(
+        ClientKey(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+
+    // Fayl yükləmə — saatda 30 fayl
+    options.AddPolicy("upload", context => RateLimitPartition.GetFixedWindowLimiter(
+        ClientKey(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromHours(1) }));
+});
+
+// Giriş etmiş istifadəçi öz hesabı üzrə, qonaq isə IP üzrə sayılır
+static string ClientKey(HttpContext context) =>
+    context.User?.Identity?.IsAuthenticated == true
+        ? $"user:{context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value}"
+        : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
 
 // Frontend-in (localhost:3000) API-yə müraciətinə icazə verir
 builder.Services.AddCors(options =>
@@ -175,6 +233,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("AllowFrontend");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -282,6 +282,9 @@ namespace DataAccess.Migrations
                     b.Property<int>("HallId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("HoldExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -402,6 +405,164 @@ namespace DataAccess.Migrations
                     b.HasIndex("MenuId");
 
                     b.ToTable("MenuItems");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CampaignId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ClickedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.NotificationCampaign", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AudienceJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AudienceSummary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Channels")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ClickCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ReadCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RecipientCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("NotificationCampaigns");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.NotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowAnnouncements")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AllowEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AllowSms")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("NotificationPreferences");
                 });
 
             modelBuilder.Entity("Entities.Concrete.PageView", b =>
@@ -559,6 +720,9 @@ namespace DataAccess.Migrations
 
                     b.Property<string>("Note")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("OwnerRemindedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -1053,6 +1217,46 @@ namespace DataAccess.Migrations
                     b.Navigation("Menu");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.Notification", b =>
+                {
+                    b.HasOne("Entities.Concrete.NotificationCampaign", "Campaign")
+                        .WithMany("Notifications")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Entities.Concrete.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.NotificationCampaign", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.NotificationPreference", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Entities.Concrete.PageView", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -1234,6 +1438,11 @@ namespace DataAccess.Migrations
             modelBuilder.Entity("Entities.Concrete.Menu", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.NotificationCampaign", b =>
+                {
+                    b.Navigation("Notifications");
                 });
 
             modelBuilder.Entity("Entities.Concrete.Venue", b =>

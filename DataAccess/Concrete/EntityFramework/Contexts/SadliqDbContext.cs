@@ -33,6 +33,9 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<VenueStaffHall> VenueStaffHalls => Set<VenueStaffHall>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<PageView> PageViews => Set<PageView>();
+        public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<NotificationCampaign> NotificationCampaigns => Set<NotificationCampaign>();
+        public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
         // Silmək fiziki deyil, işarələmədir. Ona görə bazanın öz kaskad silinməsi işə
         // düşmür — valideyn işarələnəndə uşaqları burada, bir yerdə işarələyirik.
@@ -163,6 +166,36 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasOne(p => p.User).WithMany()
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Zəng siyahısı «mənim oxunmamışlarım» sorğusu üzərində qurulub
+            b.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
+            b.Entity<Notification>().HasIndex(n => n.CreatedAt);
+            b.Entity<Notification>().HasIndex(n => n.CampaignId);
+
+            // İstifadəçi silinsə, bildirişləri də getsin — onlar yalnız ona aiddir
+            b.Entity<Notification>()
+                .HasOne(n => n.User).WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Elan silinsə, göndərilmiş bildirişlər qalsın (istifadəçi onları oxuyub)
+            b.Entity<Notification>()
+                .HasOne(n => n.Campaign).WithMany(c => c.Notifications)
+                .HasForeignKey(n => n.CampaignId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.Entity<NotificationCampaign>()
+                .HasOne(c => c.CreatedBy).WithMany()
+                .HasForeignKey(c => c.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Hər istifadəçinin bir dəst seçimi olur
+            b.Entity<NotificationPreference>()
+                .HasIndex(p => p.UserId)
+                .IsUnique();
+
+            b.Entity<Notification>().HasQueryFilter(n => !n.IsDeleted);
+            b.Entity<NotificationCampaign>().HasQueryFilter(c => !c.IsDeleted);
 
             // Token axtarışı hash üzrə gedir
             b.Entity<PasswordResetToken>()
