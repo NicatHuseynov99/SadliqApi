@@ -95,6 +95,8 @@ builder.Services.AddScoped<INotificationCampaignDal, EfNotificationCampaignDal>(
 builder.Services.AddScoped<INotificationPreferenceDal, EfNotificationPreferenceDal>();
 builder.Services.AddScoped<IAudienceDal, EfAudienceDal>();
 builder.Services.AddScoped<IReservationCounterOfferDal, EfReservationCounterOfferDal>();
+builder.Services.AddScoped<IVenueRequestDal, EfVenueRequestDal>();
+builder.Services.AddScoped<IVenueOfferDal, EfVenueOfferDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();
@@ -116,6 +118,7 @@ builder.Services.AddScoped<IPlatformSettingsService, PlatformSettingsManager>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
 builder.Services.AddScoped<IVenueApplicationService, VenueApplicationManager>();
+builder.Services.AddScoped<IVenueRequestService, VenueRequestManager>();
 
 // Bildiriş axını: kanallar sıra ilə qeydiyyatdan keçir, göndərici onları
 // istifadəçinin seçimlərinə görə süzür. Yeni kanal əlavə etmək = bir sətir.

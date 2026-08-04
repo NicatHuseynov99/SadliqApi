@@ -565,6 +565,48 @@ namespace DataAccess.Migrations
                     b.ToTable("NotificationPreferences");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.OfferMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFromCustomer")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OfferId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SenderUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.HasIndex("OfferId", "CreatedAt");
+
+                    b.ToTable("OfferMessages");
+                });
+
             modelBuilder.Entity("Entities.Concrete.PageView", b =>
                 {
                     b.Property<int>("Id")
@@ -1144,6 +1186,133 @@ namespace DataAccess.Migrations
                     b.ToTable("VenueImages");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.VenueOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ChatOpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("EventDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("HallId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MenuId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PricePerPerson")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("RequestId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HallId");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("VenueId");
+
+                    b.HasIndex("RequestId", "VenueId");
+
+                    b.ToTable("VenueOffers");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("BudgetPerPerson")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("EventDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDateFlexible")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsParking")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ReservationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Status", "ExpiresAt");
+
+                    b.ToTable("VenueRequests");
+                });
+
             modelBuilder.Entity("Entities.Concrete.VenueStaff", b =>
                 {
                     b.Property<int>("Id")
@@ -1321,6 +1490,25 @@ namespace DataAccess.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.OfferMessage", b =>
+                {
+                    b.HasOne("Entities.Concrete.VenueOffer", "Offer")
+                        .WithMany("Messages")
+                        .HasForeignKey("OfferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Offer");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Entities.Concrete.PageView", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -1486,6 +1674,52 @@ namespace DataAccess.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.VenueOffer", b =>
+                {
+                    b.HasOne("Entities.Concrete.Hall", "Hall")
+                        .WithMany()
+                        .HasForeignKey("HallId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.Menu", "Menu")
+                        .WithMany()
+                        .HasForeignKey("MenuId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.VenueRequest", "Request")
+                        .WithMany("Offers")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Hall");
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Request");
+
+                    b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueRequest", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("Entities.Concrete.VenueStaff", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -1557,6 +1791,16 @@ namespace DataAccess.Migrations
                     b.Navigation("Menus");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueOffer", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.VenueRequest", b =>
+                {
+                    b.Navigation("Offers");
                 });
 
             modelBuilder.Entity("Entities.Concrete.VenueStaff", b =>

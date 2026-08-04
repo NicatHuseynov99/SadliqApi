@@ -37,6 +37,13 @@ namespace SadliqApi.Reservations
 
                     await ReleaseExpiredAsync(context, notifications, stoppingToken);
                     await RemindOwnersAsync(context, notifications, holdHours, stoppingToken);
+
+                    // Tərs axtarışın müddəti bitmiş sorğuları da burada bağlanır
+                    var requests = scope.ServiceProvider.GetRequiredService<IVenueRequestService>();
+                    var closed = await requests.ExpireOldAsync(stoppingToken);
+
+                    if (closed > 0)
+                        _logger.LogInformation("{Count} müddəti bitmiş sorğu bağlandı.", closed);
                 }
                 catch (Exception ex)
                 {

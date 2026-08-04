@@ -35,6 +35,9 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<PageView> PageViews => Set<PageView>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<ReservationCounterOffer> ReservationCounterOffers => Set<ReservationCounterOffer>();
+        public DbSet<VenueRequest> VenueRequests => Set<VenueRequest>();
+        public DbSet<VenueOffer> VenueOffers => Set<VenueOffer>();
+        public DbSet<OfferMessage> OfferMessages => Set<OfferMessage>();
         public DbSet<NotificationCampaign> NotificationCampaigns => Set<NotificationCampaign>();
         public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
@@ -186,6 +189,44 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
 
             b.Entity<ReservationCounterOffer>().HasIndex(o => o.ReservationId);
 
+            // Tərs axtarış: açıq sorğular tez-tez status və müddət üzrə süzülür
+            b.Entity<VenueRequest>().HasIndex(r => new { r.Status, r.ExpiresAt });
+            b.Entity<VenueRequest>().HasIndex(r => r.CustomerId);
+            b.Entity<VenueOffer>().HasIndex(o => new { o.RequestId, o.VenueId });
+
+            b.Entity<VenueOffer>()
+                .HasOne(o => o.Request).WithMany(r => r.Offers)
+                .HasForeignKey(o => o.RequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.Entity<VenueOffer>()
+                .HasOne(o => o.Venue).WithMany()
+                .HasForeignKey(o => o.VenueId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<VenueOffer>()
+                .HasOne(o => o.Hall).WithMany()
+                .HasForeignKey(o => o.HallId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<VenueOffer>()
+                .HasOne(o => o.Menu).WithMany()
+                .HasForeignKey(o => o.MenuId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Yazışma təkliflə birlikdə yaşayır
+            b.Entity<OfferMessage>()
+                .HasOne(m => m.Offer).WithMany(o => o.Messages)
+                .HasForeignKey(m => m.OfferId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.Entity<OfferMessage>()
+                .HasOne(m => m.Sender).WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<OfferMessage>().HasIndex(m => new { m.OfferId, m.CreatedAt });
+
             // Sorğunu açan işçi silinsə, rezerv qalsın
             b.Entity<Reservation>()
                 .HasOne(r => r.SeenBy).WithMany()
@@ -244,6 +285,9 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<VenueFeature>().HasQueryFilter(f => !f.IsDeleted);
             b.Entity<Reservation>().HasQueryFilter(r => !r.IsDeleted);
             b.Entity<ReservationCounterOffer>().HasQueryFilter(o => !o.IsDeleted);
+            b.Entity<VenueRequest>().HasQueryFilter(r => !r.IsDeleted);
+            b.Entity<VenueOffer>().HasQueryFilter(o => !o.IsDeleted);
+            b.Entity<OfferMessage>().HasQueryFilter(m => !m.IsDeleted);
             b.Entity<VenueStaff>().HasQueryFilter(s => !s.IsDeleted);
 
             // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına

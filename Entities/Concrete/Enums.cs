@@ -15,6 +15,11 @@ namespace Entities.Concrete
 
     public enum CounterOfferStatus { Pending, Accepted, Declined, Withdrawn }
 
+    // Tərs axtarış: müştərinin sorğusu və sarayların təklifi
+    public enum VenueRequestStatus { Open, Fulfilled, Closed, Expired }
+
+    public enum VenueOfferStatus { Sent, Accepted, Declined, Withdrawn }
+
     // Bildirişin növü. «Announcement»-dan başqa hamısı sistem bildirişidir —
     // xidmətin bir hissəsi olduğu üçün söndürülə bilmir.
     public enum NotificationType
