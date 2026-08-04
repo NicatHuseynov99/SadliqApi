@@ -55,6 +55,12 @@ namespace Entities.Dtos.Reservation
         // Silinmiş rezerv yalnız adminə görünür və geri qaytarıla bilir
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+
+        // Saray tərəfdən sorğunu kim açıb: sahibin özü, yoxsa administrator.
+        // Platforma işçisinin baxışı bura düşmür.
+        public DateTime? SeenAt { get; set; }
+        public string? SeenByName { get; set; }
+        public string? SeenByRole { get; set; }
     }
 
     public class AdminReservationStatsDto

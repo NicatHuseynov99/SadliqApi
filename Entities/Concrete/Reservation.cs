@@ -29,6 +29,20 @@ namespace Entities.Concrete
         // Sahibə xatırlatma göndərilibsə — bir dəfədən çox göndərilməsin deyə
         public DateTime? OwnerRemindedAt { get; set; }
 
+        // Sahib sorğunu ilk dəfə nə vaxt açıb. Müştəri «baxıldı» görsün deyə:
+        // gözləmək pisdir, nə gözlədiyini bilməmək daha pisdir.
+        public DateTime? SeenAt { get; set; }
+
+        // Saray tərəfindən kim açıb: sahibin özü, yoxsa hansı administrator.
+        // Platforma işçisi (admin, dəstək) baxanda buraya heç nə yazılmır —
+        // müştəri üçün «saray baxıb» yalnız sarayın öz adamı deməkdir.
+        public int? SeenByUserId { get; set; }
+        public User? SeenBy { get; set; }
+
+        // Əks-təkliflərin tarixçəsi
+        public ICollection<ReservationCounterOffer> CounterOffers { get; set; }
+            = new List<ReservationCounterOffer>();
+
         // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }

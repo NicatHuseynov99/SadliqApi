@@ -87,5 +87,48 @@ namespace SadliqApi.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        // Sahib sorğunu açdı — müştəri «baxıldı» görsün
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> MarkSeen(int id)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _reservationService.MarkSeenAsync(id, ownerId));
+        }
+
+        // «Rədd et» əvəzinə başqa tarix / zal / menyu / qiymət təklif etmək
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpPost]
+        public async Task<IActionResult> CreateCounterOffer([FromBody] CreateCounterOfferDto dto)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.CreateCounterOfferAsync(dto, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> AcceptCounterOffer(int id)
+        {
+            var customerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.AcceptCounterOfferAsync(id, customerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> DeclineCounterOffer(int id)
+        {
+            var customerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.DeclineCounterOfferAsync(id, customerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

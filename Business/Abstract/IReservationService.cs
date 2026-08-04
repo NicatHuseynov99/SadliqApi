@@ -17,5 +17,15 @@ namespace Business.Abstract
         // Platforma admini üçün — sahiblik yoxlaması aparılmır
         Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto);
         Task<IResult> CancelAsync(int reservationId, int customerId);
+
+        // Sahib sorğunu açdı — müştəri «baxıldı» görsün
+        Task<IResult> MarkSeenAsync(int reservationId, int ownerId);
+
+        // «Rədd et» əvəzinə başqa tarix / zal / menyu / qiymət təklif etmək
+        Task<IDataResult<ReservationCounterOffer>> CreateCounterOfferAsync(CreateCounterOfferDto dto, int ownerId);
+
+        // Müştərinin cavabı
+        Task<IResult> AcceptCounterOfferAsync(int offerId, int customerId);
+        Task<IResult> DeclineCounterOfferAsync(int offerId, int customerId);
     }
 }

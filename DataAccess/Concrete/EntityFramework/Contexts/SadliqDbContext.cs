@@ -34,6 +34,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<PageView> PageViews => Set<PageView>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<ReservationCounterOffer> ReservationCounterOffers => Set<ReservationCounterOffer>();
         public DbSet<NotificationCampaign> NotificationCampaigns => Set<NotificationCampaign>();
         public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
@@ -167,6 +168,30 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Əks-təkliflər rezervlə birlikdə oxunur; zal və menyu silinsə təklif qalır
+            b.Entity<ReservationCounterOffer>()
+                .HasOne(o => o.Reservation).WithMany(r => r.CounterOffers)
+                .HasForeignKey(o => o.ReservationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.Entity<ReservationCounterOffer>()
+                .HasOne(o => o.Hall).WithMany()
+                .HasForeignKey(o => o.HallId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<ReservationCounterOffer>()
+                .HasOne(o => o.Menu).WithMany()
+                .HasForeignKey(o => o.MenuId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<ReservationCounterOffer>().HasIndex(o => o.ReservationId);
+
+            // Sorğunu açan işçi silinsə, rezerv qalsın
+            b.Entity<Reservation>()
+                .HasOne(r => r.SeenBy).WithMany()
+                .HasForeignKey(r => r.SeenByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Zəng siyahısı «mənim oxunmamışlarım» sorğusu üzərində qurulub
             b.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
             b.Entity<Notification>().HasIndex(n => n.CreatedAt);
@@ -218,6 +243,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<HallMedia>().HasQueryFilter(m => !m.IsDeleted);
             b.Entity<VenueFeature>().HasQueryFilter(f => !f.IsDeleted);
             b.Entity<Reservation>().HasQueryFilter(r => !r.IsDeleted);
+            b.Entity<ReservationCounterOffer>().HasQueryFilter(o => !o.IsDeleted);
             b.Entity<VenueStaff>().HasQueryFilter(s => !s.IsDeleted);
 
             // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına

@@ -128,6 +128,7 @@ namespace Business.Concrete
                 .Include(r => r.Venue)
                 .Include(r => r.Hall)
                 .Include(r => r.Menu)
+                .Include(r => r.SeenBy)
                 .OrderBy(r => r.Status == ReservationStatus.Pending ? 0 : 1)
                 .ThenByDescending(r => r.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -155,7 +156,15 @@ namespace Business.Concrete
                 CreatedAt = r.CreatedAt,
                 IsPast = r.EventDate < today,
                 IsDeleted = r.IsDeleted,
-                DeletedAt = r.DeletedAt
+                DeletedAt = r.DeletedAt,
+                SeenAt = r.SeenAt,
+                SeenByName = r.SeenBy is null ? null : $"{r.SeenBy.FirstName} {r.SeenBy.LastName}",
+                SeenByRole = r.SeenBy?.Role switch
+                {
+                    UserRole.Owner => "saray sahibi",
+                    UserRole.VenueAdmin => "saray administratoru",
+                    _ => null
+                }
             }).ToList();
 
             var result = new PagedResult<AdminReservationDto>
@@ -193,6 +202,7 @@ namespace Business.Concrete
             ReservationStatus.Confirmed => "Təsdiqlənib",
             ReservationStatus.Rejected => "Rədd edilib",
             ReservationStatus.Expired => "Vaxtı keçib",
+            ReservationStatus.CounterOffered => "Təklif göndərilib",
             _ => "Ləğv edilib"
         };
     }

@@ -724,6 +724,12 @@ namespace DataAccess.Migrations
                     b.Property<DateTime?>("OwnerRemindedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("SeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("SeenByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -738,9 +744,67 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("MenuId");
 
+                    b.HasIndex("SeenByUserId");
+
                     b.HasIndex("VenueId");
 
                     b.ToTable("Reservations");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReservationCounterOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("EventDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("HallId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MenuId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("PricePerPerson")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("ReservationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HallId");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("ReservationId");
+
+                    b.ToTable("ReservationCounterOffers");
                 });
 
             modelBuilder.Entity("Entities.Concrete.Review", b =>
@@ -1298,6 +1362,11 @@ namespace DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Entities.Concrete.User", "SeenBy")
+                        .WithMany()
+                        .HasForeignKey("SeenByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Entities.Concrete.Venue", "Venue")
                         .WithMany()
                         .HasForeignKey("VenueId")
@@ -1310,7 +1379,34 @@ namespace DataAccess.Migrations
 
                     b.Navigation("Menu");
 
+                    b.Navigation("SeenBy");
+
                     b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.ReservationCounterOffer", b =>
+                {
+                    b.HasOne("Entities.Concrete.Hall", "Hall")
+                        .WithMany()
+                        .HasForeignKey("HallId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Entities.Concrete.Menu", "Menu")
+                        .WithMany()
+                        .HasForeignKey("MenuId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Entities.Concrete.Reservation", "Reservation")
+                        .WithMany("CounterOffers")
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hall");
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Reservation");
                 });
 
             modelBuilder.Entity("Entities.Concrete.Review", b =>
@@ -1443,6 +1539,11 @@ namespace DataAccess.Migrations
             modelBuilder.Entity("Entities.Concrete.NotificationCampaign", b =>
                 {
                     b.Navigation("Notifications");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.Reservation", b =>
+                {
+                    b.Navigation("CounterOffers");
                 });
 
             modelBuilder.Entity("Entities.Concrete.Venue", b =>

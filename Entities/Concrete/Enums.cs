@@ -10,7 +10,10 @@ namespace Entities.Concrete
     public enum MediaType { Image, Video }
     public enum AvailabilityStatus { Available, Booked, Held }
     // Expired = sahib vaxtında cavab vermədi, sorğu öz-özünə bağlandı və tarix boşaldı
-    public enum ReservationStatus { Pending, Confirmed, Rejected, Cancelled, Expired }
+    // CounterOffered = sahib əks-təklif göndərib, müştərinin cavabı gözlənilir
+    public enum ReservationStatus { Pending, Confirmed, Rejected, Cancelled, Expired, CounterOffered }
+
+    public enum CounterOfferStatus { Pending, Accepted, Declined, Withdrawn }
 
     // Bildirişin növü. «Announcement»-dan başqa hamısı sistem bildirişidir —
     // xidmətin bir hissəsi olduğu üçün söndürülə bilmir.

@@ -94,6 +94,7 @@ builder.Services.AddScoped<INotificationDal, EfNotificationDal>();
 builder.Services.AddScoped<INotificationCampaignDal, EfNotificationCampaignDal>();
 builder.Services.AddScoped<INotificationPreferenceDal, EfNotificationPreferenceDal>();
 builder.Services.AddScoped<IAudienceDal, EfAudienceDal>();
+builder.Services.AddScoped<IReservationCounterOfferDal, EfReservationCounterOfferDal>();
 
 // Servis qeydiyyatı
 builder.Services.AddScoped<IAuthService, AuthManager>();

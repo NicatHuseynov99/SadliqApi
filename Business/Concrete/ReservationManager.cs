@@ -19,6 +19,7 @@ namespace Business.Concrete
         private readonly INotificationService _notifications;
         private readonly IAuditContext _audit;
         private readonly IPlatformSettingsService _settings;
+        private readonly IReservationCounterOfferDal _counterOfferDal;
 
         // Tutulmanın ilkin müddəti — admin paneldən dəyişdirilə bilər
         private const int DefaultHoldHours = 48;
@@ -36,8 +37,10 @@ namespace Business.Concrete
             IUserDal userDal,
             INotificationService notifications,
             IAuditContext audit,
-            IPlatformSettingsService settings)
+            IPlatformSettingsService settings,
+            IReservationCounterOfferDal counterOfferDal)
         {
+            _counterOfferDal = counterOfferDal;
             _audit = audit;
             _settings = settings;
             _reservationDal = reservationDal;
@@ -248,6 +251,8 @@ namespace Business.Concrete
                 .Include(r => r.Venue)
                 .Include(r => r.Hall)
                 .Include(r => r.Menu)
+                .Include(r => r.CounterOffers)!.ThenInclude(o => o.Hall)
+                .Include(r => r.CounterOffers)!.ThenInclude(o => o.Menu)
                 .ToListAsync();
 
             return new SuccessDataResult<List<Reservation>>(list);
@@ -270,6 +275,7 @@ namespace Business.Concrete
                 .Include(r => r.Customer)
                 .Include(r => r.Hall)
                 .Include(r => r.Menu)
+                .Include(r => r.CounterOffers)
                 .ToListAsync();
 
             return new SuccessDataResult<List<Reservation>>(list);
@@ -292,6 +298,7 @@ namespace Business.Concrete
                 .Include(r => r.Customer)
                 .Include(r => r.Hall)
                 .Include(r => r.Menu)
+                .Include(r => r.CounterOffers)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
@@ -402,6 +409,344 @@ namespace Business.Concrete
                 "Reservation", reservation.Id, reservation.VenueId);
 
             return new SuccessResult("Rezerv ləğv edildi.");
+        }
+
+        // ————— əks-təklif —————
+
+        // Saray sorğunu açdı. Müştəri «baxıldı» görsün deyə bir dəfə qeyd olunur.
+        //
+        // Platforma işçisinin (admin, dəstək) baxışı sayılmır: müştəri üçün
+        // «saray baxıb» yazısı sarayın özünün xəbər tutduğu mənasını verməlidir.
+        public async Task<IResult> MarkSeenAsync(int reservationId, int ownerId)
+        {
+            var reservation = await _reservationDal.GetAsync(r => r.Id == reservationId);
+            if (reservation is null) return new ErrorResult("Rezerv tapılmadı.");
+
+            if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
+                return new ErrorResult("Bu rezerv sizə aid deyil.");
+
+            var viewer = await _userDal.GetAsync(u => u.Id == ownerId);
+            if (viewer is null || viewer.Role is UserRole.SuperAdmin or UserRole.Support)
+                return new SuccessResult();
+
+            if (reservation.SeenAt is not null) return new SuccessResult();
+
+            reservation.SeenAt = DateTime.UtcNow;
+            reservation.SeenByUserId = ownerId;
+            await _reservationDal.UpdateAsync(reservation);
+
+            return new SuccessResult();
+        }
+
+        // «Rədd et» əvəzinə başqa şərt təklif etmək. Rədd edilən sorğuların
+        // böyük hissəsi əslində «o gün dolu, başqa gün var» deməkdir.
+        public async Task<IDataResult<ReservationCounterOffer>> CreateCounterOfferAsync(
+            CreateCounterOfferDto dto, int ownerId)
+        {
+            var reservation = await _reservationDal.GetAsync(r => r.Id == dto.ReservationId);
+            if (reservation is null)
+                return new ErrorDataResult<ReservationCounterOffer>("Rezerv tapılmadı.");
+
+            if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
+                return new ErrorDataResult<ReservationCounterOffer>("Bu rezerv sizə aid deyil.");
+
+            if (reservation.Status is not (ReservationStatus.Pending or ReservationStatus.CounterOffered))
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Yalnız cavab gözləyən sorğuya əks-təklif göndərmək olar.");
+
+            // Ən azı bir şərt dəyişməlidir — yoxsa təklifin mənası yoxdur
+            var changesDate = dto.EventDate.HasValue && dto.EventDate != reservation.EventDate;
+            var changesHall = dto.HallId.HasValue && dto.HallId != reservation.HallId;
+            var changesMenu = dto.MenuId.HasValue && dto.MenuId != reservation.MenuId;
+            var changesPrice = dto.PricePerPerson.HasValue && dto.PricePerPerson > 0;
+
+            if (!changesDate && !changesHall && !changesMenu && !changesPrice)
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Ən azı bir şərt dəyişməlidir: tarix, zal, menyu və ya qiymət.");
+
+            if (string.IsNullOrWhiteSpace(dto.Message) || dto.Message.Trim().Length < 5)
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Müştəriyə qısa izah yazın — niyə bu təklifi göndərirsiniz.");
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            if (changesDate && dto.EventDate <= today)
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Təklif olunan tarix bugündən sonrakı gün olmalıdır.");
+
+            // Təklif olunan zal eyni saraya aid olmalıdır
+            var targetHallId = dto.HallId ?? reservation.HallId;
+            var hall = await _hallDal.GetAsync(h => h.Id == targetHallId);
+            if (hall is null || hall.VenueId != reservation.VenueId)
+                return new ErrorDataResult<ReservationCounterOffer>("Seçilən zal bu saraya aid deyil.");
+
+            if (reservation.GuestCount > hall.Capacity)
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    $"«{hall.Name}» zalının tutumu {hall.Capacity} nəfərdir, " +
+                    $"müştəri isə {reservation.GuestCount} qonaq gözləyir.");
+
+            if (dto.MenuId.HasValue)
+            {
+                var menu = await _menuDal.GetAsync(m => m.Id == dto.MenuId.Value);
+                if (menu is null || menu.VenueId != reservation.VenueId)
+                    return new ErrorDataResult<ReservationCounterOffer>("Seçilən menyu bu saraya aid deyil.");
+            }
+
+            var targetDate = dto.EventDate ?? reservation.EventDate;
+
+            // Təklif olunan gün başqasına satılmasın deyə o da tutulur
+            var target = await _availabilityDal.GetAsync(
+                a => a.HallId == targetHallId && a.Date == targetDate);
+
+            var sameSlot = targetHallId == reservation.HallId && targetDate == reservation.EventDate;
+
+            if (target is not null && target.Status != AvailabilityStatus.Available && !sameSlot)
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Təklif etdiyiniz gün həmin zalda artıq doludur.");
+
+            var holdHours = await _settings.GetIntAsync("reservation_hold_hours", DefaultHoldHours);
+            var holdUntil = DateTime.UtcNow.AddHours(holdHours);
+
+            if (target is null)
+            {
+                await _availabilityDal.AddAsync(new HallAvailability
+                {
+                    HallId = targetHallId,
+                    Date = targetDate,
+                    Status = AvailabilityStatus.Held,
+                    HoldExpiresAt = holdUntil
+                });
+            }
+            else
+            {
+                target.Status = AvailabilityStatus.Held;
+                target.HoldExpiresAt = holdUntil;
+                await _availabilityDal.UpdateAsync(target);
+            }
+
+            // İlkin tarixin tutulması da uzadılır: müştəri cavab verənə qədər
+            // köhnə variant əldən çıxmasın
+            if (!sameSlot)
+            {
+                var original = await _availabilityDal.GetAsync(
+                    a => a.HallId == reservation.HallId && a.Date == reservation.EventDate);
+
+                if (original is not null && original.Status == AvailabilityStatus.Held)
+                {
+                    original.HoldExpiresAt = holdUntil;
+                    await _availabilityDal.UpdateAsync(original);
+                }
+            }
+
+            // Cavabsız qalan əvvəlki təklif geri götürülür — eyni anda bir təklif olur
+            var previousQuery = await _counterOfferDal.GetListAsync(
+                o => o.ReservationId == reservation.Id && o.Status == CounterOfferStatus.Pending);
+
+            foreach (var previous in await previousQuery.ToListAsync())
+            {
+                var tracked = await _counterOfferDal.GetAsync(o => o.Id == previous.Id);
+                if (tracked is null) continue;
+
+                tracked.Status = CounterOfferStatus.Withdrawn;
+                tracked.RespondedAt = DateTime.UtcNow;
+                await _counterOfferDal.UpdateAsync(tracked);
+            }
+
+            var offer = new ReservationCounterOffer
+            {
+                ReservationId = reservation.Id,
+                CreatedByUserId = ownerId,
+                EventDate = changesDate ? dto.EventDate : null,
+                HallId = changesHall ? dto.HallId : null,
+                MenuId = changesMenu ? dto.MenuId : null,
+                PricePerPerson = changesPrice ? dto.PricePerPerson : null,
+                Message = dto.Message.Trim(),
+                Status = CounterOfferStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _counterOfferDal.AddAsync(offer);
+
+            reservation.Status = ReservationStatus.CounterOffered;
+
+            // Təklif göndərən sarayın adamıdırsa, bu həm də «baxıldı» deməkdir
+            var author = await _userDal.GetAsync(u => u.Id == ownerId);
+            if (author is not null && author.Role is not (UserRole.SuperAdmin or UserRole.Support)
+                && reservation.SeenAt is null)
+            {
+                reservation.SeenAt = DateTime.UtcNow;
+                reservation.SeenByUserId = ownerId;
+            }
+
+            await _reservationDal.UpdateAsync(reservation);
+
+            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
+            var summary = await DescribeOfferAsync(reservation, offer);
+
+            await _notifications.NotifyAsync(
+                reservation.CustomerId,
+                new NotificationMessage(
+                    NotificationType.ReservationStatusChanged,
+                    $"«{venue?.Name ?? "Saray"}» yeni şərt təklif etdi",
+                    summary + "\n\n" + offer.Message,
+                    "/rezervlerim"));
+
+            _audit.Set(
+                "ReservationCounterOffered",
+                $"{reservation.EventDate:dd.MM.yyyy} tarixli sorğuya əks-təklif göndərdi",
+                "Reservation", reservation.Id, reservation.VenueId);
+
+            return new SuccessDataResult<ReservationCounterOffer>(offer, "Əks-təklif müştəriyə göndərildi.");
+        }
+
+        // Müştəri qəbul etdi: şərtlər rezervə köçürülür və rezerv təsdiqlənir
+        public async Task<IResult> AcceptCounterOfferAsync(int offerId, int customerId)
+        {
+            var (offer, reservation, error) = await LoadOfferAsync(offerId, customerId);
+            if (error is not null) return error;
+
+            var oldHallId = reservation!.HallId;
+            var oldDate = reservation.EventDate;
+
+            if (offer!.EventDate.HasValue) reservation.EventDate = offer.EventDate.Value;
+            if (offer.HallId.HasValue) reservation.HallId = offer.HallId.Value;
+            if (offer.MenuId.HasValue) reservation.MenuId = offer.MenuId.Value;
+
+            reservation.Status = ReservationStatus.Confirmed;
+            await _reservationDal.UpdateAsync(reservation);
+
+            offer.Status = CounterOfferStatus.Accepted;
+            offer.RespondedAt = DateTime.UtcNow;
+            await _counterOfferDal.UpdateAsync(offer);
+
+            // Yeni gün tutulur, köhnə gün (dəyişibsə) boşalır
+            await SetAvailabilityAsync(reservation.HallId, reservation.EventDate, AvailabilityStatus.Booked);
+
+            if (oldHallId != reservation.HallId || oldDate != reservation.EventDate)
+                await SetAvailabilityAsync(oldHallId, oldDate, AvailabilityStatus.Available);
+
+            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
+            var customer = await _userDal.GetAsync(u => u.Id == reservation.CustomerId);
+
+            if (venue is not null)
+                await _notifications.NotifyAsync(
+                    venue.OwnerId,
+                    new NotificationMessage(
+                        NotificationType.ReservationStatusChanged,
+                        "Əks-təklif qəbul edildi",
+                        $"{customer?.FullName ?? "Müştəri"} təklifinizi qəbul etdi. " +
+                        $"Rezerv təsdiqləndi: {reservation.EventDate:dd.MM.yyyy}.",
+                        "/panel"));
+
+            _audit.Set(
+                "CounterOfferAccepted",
+                $"{reservation.EventDate:dd.MM.yyyy} tarixli əks-təklifi qəbul etdi",
+                "Reservation", reservation.Id, reservation.VenueId);
+
+            return new SuccessResult("Təklif qəbul edildi, rezerviniz təsdiqləndi.");
+        }
+
+        // Müştəri rədd etdi: sorğu bağlanır, tutulmuş günlər boşalır
+        public async Task<IResult> DeclineCounterOfferAsync(int offerId, int customerId)
+        {
+            var (offer, reservation, error) = await LoadOfferAsync(offerId, customerId);
+            if (error is not null) return error;
+
+            offer!.Status = CounterOfferStatus.Declined;
+            offer.RespondedAt = DateTime.UtcNow;
+            await _counterOfferDal.UpdateAsync(offer);
+
+            reservation!.Status = ReservationStatus.Rejected;
+            await _reservationDal.UpdateAsync(reservation);
+
+            await SetAvailabilityAsync(reservation.HallId, reservation.EventDate, AvailabilityStatus.Available);
+
+            if (offer.EventDate.HasValue || offer.HallId.HasValue)
+                await SetAvailabilityAsync(
+                    offer.HallId ?? reservation.HallId,
+                    offer.EventDate ?? reservation.EventDate,
+                    AvailabilityStatus.Available);
+
+            var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
+
+            if (venue is not null)
+                await _notifications.NotifyAsync(
+                    venue.OwnerId,
+                    new NotificationMessage(
+                        NotificationType.ReservationStatusChanged,
+                        "Əks-təklif qəbul edilmədi",
+                        $"{reservation.EventDate:dd.MM.yyyy} tarixi üçün göndərdiyiniz təklif " +
+                        "müştəri tərəfindən rədd edildi. Tarixlər yenidən boşdur.",
+                        "/panel"));
+
+            return new SuccessResult("Təklif rədd edildi.");
+        }
+
+        // Təklifi tapır və müştəriyə aid olduğunu yoxlayır
+        private async Task<(ReservationCounterOffer? Offer, Reservation? Reservation, IResult? Error)>
+            LoadOfferAsync(int offerId, int customerId)
+        {
+            var offer = await _counterOfferDal.GetAsync(o => o.Id == offerId);
+            if (offer is null)
+                return (null, null, new ErrorResult("Təklif tapılmadı."));
+
+            if (offer.Status != CounterOfferStatus.Pending)
+                return (null, null, new ErrorResult("Bu təklifə artıq cavab verilib."));
+
+            var reservation = await _reservationDal.GetAsync(r => r.Id == offer.ReservationId);
+            if (reservation is null || reservation.CustomerId != customerId)
+                return (null, null, new ErrorResult("Bu təklif sizə aid deyil."));
+
+            return (offer, reservation, null);
+        }
+
+        private async Task SetAvailabilityAsync(int hallId, DateOnly date, AvailabilityStatus status)
+        {
+            var slot = await _availabilityDal.GetAsync(a => a.HallId == hallId && a.Date == date);
+
+            if (slot is null)
+            {
+                if (status == AvailabilityStatus.Available) return;
+
+                await _availabilityDal.AddAsync(new HallAvailability
+                {
+                    HallId = hallId,
+                    Date = date,
+                    Status = status
+                });
+                return;
+            }
+
+            slot.Status = status;
+            slot.HoldExpiresAt = null;
+            await _availabilityDal.UpdateAsync(slot);
+        }
+
+        // Təklifin nəyi dəyişdiyini insan dilində yazır
+        private async Task<string> DescribeOfferAsync(Reservation reservation, ReservationCounterOffer offer)
+        {
+            var lines = new List<string>();
+
+            if (offer.EventDate.HasValue)
+                lines.Add($"Tarix: {reservation.EventDate:dd.MM.yyyy} → {offer.EventDate:dd.MM.yyyy}");
+
+            if (offer.HallId.HasValue)
+            {
+                var oldHall = await _hallDal.GetAsync(h => h.Id == reservation.HallId);
+                var newHall = await _hallDal.GetAsync(h => h.Id == offer.HallId.Value);
+                lines.Add($"Zal: {oldHall?.Name} → {newHall?.Name}");
+            }
+
+            if (offer.MenuId.HasValue)
+            {
+                var oldMenu = await _menuDal.GetAsync(m => m.Id == reservation.MenuId);
+                var newMenu = await _menuDal.GetAsync(m => m.Id == offer.MenuId.Value);
+                lines.Add($"Menyu: {oldMenu?.Name} → {newMenu?.Name}");
+            }
+
+            if (offer.PricePerPerson.HasValue)
+                lines.Add($"Qiymət: {offer.PricePerPerson} ₼ / nəfər");
+
+            return string.Join("\n", lines);
         }
     }
 }
