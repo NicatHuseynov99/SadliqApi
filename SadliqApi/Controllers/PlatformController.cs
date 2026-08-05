@@ -21,6 +21,9 @@ namespace SadliqApi.Controllers
             _service = service;
         }
 
+        // Kitabçaların silinmiş sətirləri yalnız admin və dəstək üçündür
+        private bool IsStaff => User.IsInRole("SuperAdmin") || User.IsInRole("Support");
+
         [HttpGet]
         public async Task<IActionResult> GetSettings()
         {
@@ -84,10 +87,14 @@ namespace SadliqApi.Controllers
 
         // ---------- Şəhər kitabçası ----------
 
+        // Şəhər siyahısı hər kəsə açıqdır: ana səhifədəki süzgəc,
+        // sorğu forması və qeydiyyat anketi onu oxuyur
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetCities([FromQuery] bool includeDeleted = false)
         {
-            var result = await _service.GetCitiesAsync(includeDeleted);
+            // Silinmişləri yalnız platforma işçisi görə bilər
+            var result = await _service.GetCitiesAsync(includeDeleted && IsStaff);
             return Ok(result);
         }
 
@@ -129,10 +136,12 @@ namespace SadliqApi.Controllers
 
         // ---------- Özəllik kitabçası ----------
 
+        // Özəlliklər də açıqdır — süzgəcdə və saray anketində göstərilir
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetFeatures([FromQuery] bool includeDeleted = false)
         {
-            var result = await _service.GetFeaturesAsync(includeDeleted);
+            var result = await _service.GetFeaturesAsync(includeDeleted && IsStaff);
             return Ok(result);
         }
 
