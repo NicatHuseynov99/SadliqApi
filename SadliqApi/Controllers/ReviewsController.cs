@@ -27,7 +27,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Rəy yazmaq üçün giriş kifayətdir; sayına məhdudiyyət yoxdur
+        // Səhifə formanı göstərməzdən əvvəl soruşur
+        [Authorize]
+        [HttpGet("{venueId}")]
+        public async Task<IActionResult> CanReview(int venueId)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _reviewService.CanReviewAsync(venueId, userId));
+        }
+
+        // Rəy yalnız tədbiri keçmiş qonaqdan qəbul olunur
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateReviewDto dto)

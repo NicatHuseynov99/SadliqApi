@@ -44,7 +44,12 @@ namespace SadliqApi.Files
             var root = Path.Combine(_environment.WebRootPath ?? "wwwroot", "uploads");
             if (!Directory.Exists(root)) return;
 
+            // Yalnız yüklənən media faylları silinir. Xidməti fayllar (.gitkeep kimi)
+            // toxunulmaz qalır — yoxsa qovluğun quruluşu pozulur.
+            var mediaTypes = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov" };
+
             var files = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .Where(f => mediaTypes.Contains(Path.GetExtension(f).ToLowerInvariant()))
                 .Where(f => File.GetCreationTimeUtc(f) < DateTime.UtcNow.AddHours(-24))
                 .ToList();
 

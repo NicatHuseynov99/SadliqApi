@@ -16,5 +16,8 @@ namespace Business.Abstract
 
         // İstifadəçi uyğunsuz rəyi moderatorun diqqətinə çatdırır
         Task<IResult> ReportAsync(ReportReviewDto dto, int userId);
+
+        // Rəy yaza bilərmi: səhifə formanı boş yerə göstərməsin
+        Task<IDataResult<ReviewEligibilityDto>> CanReviewAsync(int venueId, int userId);
     }
 }

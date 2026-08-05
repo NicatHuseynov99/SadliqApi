@@ -889,10 +889,16 @@ namespace DataAccess.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsVerifiedGuest")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
 
                     b.Property<int>("ReportCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReservationId")
                         .HasColumnType("integer");
 
                     b.Property<int>("VenueId")

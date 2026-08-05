@@ -28,6 +28,14 @@ namespace Entities.Concrete
         // Şikayət sayı — moderatorun diqqətini yönəltmək üçün saxlanılır
         public int ReportCount { get; set; }
 
+        // Rəy həqiqətən orada olan qonaqdandırsa: təsdiqlənmiş və tarixi keçmiş
+        // rezervi var. Yalnız belə rəylər reytinq ortalamasına düşür — yoxsa
+        // reytinq heç nə ifadə etmir.
+        public bool IsVerifiedGuest { get; set; }
+
+        // Hansı rezervdən yarandığı — bir tədbirə bir rəy qaydası üçün
+        public int? ReservationId { get; set; }
+
         // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
