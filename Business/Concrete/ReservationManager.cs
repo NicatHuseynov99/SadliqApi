@@ -364,6 +364,10 @@ namespace Business.Concrete
         {
             var dto = new UpdateReservationStatusDto { Status = status };
             reservation.Status = dto.Status;
+
+            // Cavab müddəti hesabatı üçün: sorğu nə vaxt cavablandı
+            if (status is ReservationStatus.Confirmed or ReservationStatus.Rejected)
+                reservation.RespondedAt ??= DateTime.UtcNow;
             await _reservationDal.UpdateAsync(reservation);
 
             var availability = await _availabilityDal.GetAsync(

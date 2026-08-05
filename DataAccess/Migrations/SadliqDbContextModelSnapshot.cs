@@ -769,6 +769,9 @@ namespace DataAccess.Migrations
                     b.Property<DateTime?>("OwnerRemindedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ReviewInviteSentAt")
                         .HasColumnType("timestamp with time zone");
 

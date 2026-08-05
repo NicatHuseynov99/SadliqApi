@@ -119,6 +119,7 @@ builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
 builder.Services.AddScoped<IVenueApplicationService, VenueApplicationManager>();
 builder.Services.AddScoped<IVenueRequestService, VenueRequestManager>();
+builder.Services.AddScoped<IOwnerStatsService, OwnerStatsManager>();
 
 // Bildiriş axını: kanallar sıra ilə qeydiyyatdan keçir, göndərici onları
 // istifadəçinin seçimlərinə görə süzür. Yeni kanal əlavə etmək = bir sətir.

@@ -36,6 +36,9 @@ namespace Entities.Concrete
         // Tədbirdən sonra rəy dəvəti göndərildi
         public DateTime? ReviewInviteSentAt { get; set; }
 
+        // Saray sorğuya nə vaxt cavab verdi — cavab müddəti hesabatı üçün
+        public DateTime? RespondedAt { get; set; }
+
         // Tarixin tutulma müddəti — bazada zalın təqvimində saxlanılır,
         // müştəriyə «cavaba nə qədər qalıb» göstərmək üçün siyahıda doldurulur
         [NotMapped]
