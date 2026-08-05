@@ -748,6 +748,9 @@ namespace DataAccess.Migrations
                     b.Property<DateOnly>("EventDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("EventReminderSentAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("GuestCount")
                         .HasColumnType("integer");
 
@@ -764,6 +767,9 @@ namespace DataAccess.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("OwnerRemindedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReviewInviteSentAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SeenAt")
@@ -1287,6 +1293,9 @@ namespace DataAccess.Migrations
                         .HasColumnType("date");
 
                     b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiryWarningSentAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("GuestCount")

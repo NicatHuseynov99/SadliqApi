@@ -32,6 +32,9 @@ namespace Entities.Concrete
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ClosedAt { get; set; }
 
+        // Bitməsinə bir gün qalmış xəbərdarlıq göndərilibsə
+        public DateTime? ExpiryWarningSentAt { get; set; }
+
         // Qəbul edilən təklifdən yaranan rezerv
         public int? ReservationId { get; set; }
 

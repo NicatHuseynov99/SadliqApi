@@ -1,4 +1,5 @@
 using Core.Entities;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Entities.Concrete
 {
@@ -28,6 +29,17 @@ namespace Entities.Concrete
 
         // Sahibə xatırlatma göndərilibsə — bir dəfədən çox göndərilməsin deyə
         public DateTime? OwnerRemindedAt { get; set; }
+
+        // Tədbirdən əvvəl xatırlatma göndərildi
+        public DateTime? EventReminderSentAt { get; set; }
+
+        // Tədbirdən sonra rəy dəvəti göndərildi
+        public DateTime? ReviewInviteSentAt { get; set; }
+
+        // Tarixin tutulma müddəti — bazada zalın təqvimində saxlanılır,
+        // müştəriyə «cavaba nə qədər qalıb» göstərmək üçün siyahıda doldurulur
+        [NotMapped]
+        public DateTime? HoldExpiresAt { get; set; }
 
         // Sahib sorğunu ilk dəfə nə vaxt açıb. Müştəri «baxıldı» görsün deyə:
         // gözləmək pisdir, nə gözlədiyini bilməmək daha pisdir.

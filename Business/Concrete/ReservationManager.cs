@@ -255,7 +255,33 @@ namespace Business.Concrete
                 .Include(r => r.CounterOffers)!.ThenInclude(o => o.Menu)
                 .ToListAsync();
 
+            await FillHoldExpiryAsync(list);
+
             return new SuccessDataResult<List<Reservation>>(list);
+        }
+
+        // Cavab gözləyən sorğular üçün «tarix nə vaxta qədər tutulub» məlumatı.
+        // Müştəri nə gözlədiyini bilməlidir — gözləmək pisdir, bilməmək daha pisdir.
+        private async Task FillHoldExpiryAsync(List<Reservation> list)
+        {
+            var waiting = list
+                .Where(r => r.Status is ReservationStatus.Pending or ReservationStatus.CounterOffered)
+                .ToList();
+
+            if (waiting.Count == 0) return;
+
+            var hallIds = waiting.Select(r => r.HallId).Distinct().ToList();
+            var dates = waiting.Select(r => r.EventDate).Distinct().ToList();
+
+            var query = await _availabilityDal.GetListAsync(
+                a => hallIds.Contains(a.HallId) && dates.Contains(a.Date));
+
+            var slots = await query.ToListAsync();
+
+            foreach (var reservation in waiting)
+                reservation.HoldExpiresAt = slots
+                    .FirstOrDefault(s => s.HallId == reservation.HallId && s.Date == reservation.EventDate)
+                    ?.HoldExpiresAt;
         }
 
         // Sarayın rezerv sorğuları — sahib və ya həmin saraya təyin olunmuş administrator görə bilər

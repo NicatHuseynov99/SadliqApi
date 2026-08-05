@@ -523,8 +523,62 @@ namespace Business.Concrete
                 request.ClosedAt = now;
             }
 
+            foreach (var request in expired)
+            {
+                var offers = await _context.VenueOffers
+                    .CountAsync(o => o.RequestId == request.Id && o.Status == VenueOfferStatus.Sent, token);
+
+                await _notifications.NotifyAsync(
+                    request.CustomerId,
+                    new NotificationMessage(
+                        NotificationType.SystemMessage,
+                        "Sorğunuzun müddəti bitdi",
+                        offers > 0
+                            ? $"{request.City} üzrə sorğunuza {offers} təklif gəlmişdi, amma seçim etmədiniz. " +
+                              "İstəsəniz yeni sorğu paylaşa bilərsiniz."
+                            : "Sorğunuza təklif gəlmədi. Şərtləri bir az yumşaldıb (tarix, büdcə) " +
+                              "yenidən cəhd edə bilərsiniz.",
+                        "/sorgularim"));
+            }
+
             if (expired.Count > 0)
                 await _context.SaveChangesAsync(token);
+
+            // Bitməsinə bir gün qalmışlar: müştəri təklifləri gözdən qaçırmasın
+            var soon = now.AddHours(24);
+
+            var ending = await _context.VenueRequests
+                .Where(r => r.Status == VenueRequestStatus.Open
+                            && r.ExpiryWarningSentAt == null
+                            && r.ExpiresAt > now
+                            && r.ExpiresAt <= soon)
+                .ToListAsync(token);
+
+            if (ending.Count > 0)
+            {
+                foreach (var request in ending)
+                    request.ExpiryWarningSentAt = now;
+
+                await _context.SaveChangesAsync(token);
+
+                foreach (var request in ending)
+                {
+                    var offers = await _context.VenueOffers
+                        .CountAsync(o => o.RequestId == request.Id && o.Status == VenueOfferStatus.Sent, token);
+
+                    await _notifications.NotifyAsync(
+                        request.CustomerId,
+                        new NotificationMessage(
+                            NotificationType.ReservationReminder,
+                            "Sorğunuza bir gün qalıb",
+                            offers > 0
+                                ? $"Sizə {offers} təklif gəlib. Sorğu sabah bağlanacaq — " +
+                                  "təklifləri müqayisə edib seçim edin."
+                                : "Sorğunuz sabah bağlanacaq və hələ təklif gəlməyib. " +
+                                  "Şərtləri dəyişib yeni sorğu paylaşa bilərsiniz.",
+                            "/sorgularim"));
+                }
+            }
 
             return expired.Count;
         }

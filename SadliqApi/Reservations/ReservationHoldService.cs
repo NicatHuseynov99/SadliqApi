@@ -13,6 +13,10 @@ namespace SadliqApi.Reservations
     {
         private const int DefaultHoldHours = 48;
 
+        // Tədbirə neçə gün qalmış xatırladılsın və neçə gün sonra rəy istənilsin
+        private const int EventReminderDays = 3;
+        private const int ReviewInviteAfterDays = 2;
+
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<ReservationHoldService> _logger;
 
@@ -37,6 +41,9 @@ namespace SadliqApi.Reservations
 
                     await ReleaseExpiredAsync(context, notifications, stoppingToken);
                     await RemindOwnersAsync(context, notifications, holdHours, stoppingToken);
+
+                    await RemindUpcomingEventsAsync(context, notifications, stoppingToken);
+                    await InviteReviewsAsync(context, notifications, stoppingToken);
 
                     // Tərs axtarışın müddəti bitmiş sorğuları da burada bağlanır
                     var requests = scope.ServiceProvider.GetRequiredService<IVenueRequestService>();
@@ -148,6 +155,102 @@ namespace SadliqApi.Reservations
                         $"{reservation.EventDate:dd.MM.yyyy} tarixi üçün sorğu hələ cavabsızdır. " +
                         "Cavab verilməsə, tarix avtomatik boşalacaq və sorğu bağlanacaq.",
                         "/panel"));
+            }
+        }
+
+        // Tədbirə 3 gün qalmış hər iki tərəfə xatırlatma.
+        // Toy bir dəfə olur — unudulmaması platformanın işidir.
+        private async Task RemindUpcomingEventsAsync(
+            SadliqDbContext context, INotificationService notifications, CancellationToken token)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            var soon = today.AddDays(EventReminderDays);
+
+            var upcoming = await context.Reservations
+                .Where(r => r.Status == ReservationStatus.Confirmed
+                            && r.EventReminderSentAt == null
+                            && r.EventDate > today
+                            && r.EventDate <= soon)
+                .Include(r => r.Venue)
+                .Include(r => r.Hall)
+                .Take(200)
+                .ToListAsync(token);
+
+            if (upcoming.Count == 0) return;
+
+            foreach (var reservation in upcoming)
+                reservation.EventReminderSentAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(token);
+
+            foreach (var reservation in upcoming)
+            {
+                var days = reservation.EventDate.DayNumber - today.DayNumber;
+                var venueName = reservation.Venue?.Name ?? "Saray";
+
+                await notifications.NotifyAsync(
+                    reservation.CustomerId,
+                    new NotificationMessage(
+                        NotificationType.ReservationReminder,
+                        $"Tədbirinizə {days} gün qaldı",
+                        $"«{venueName}» — {reservation.Hall?.Name}, {reservation.EventDate:dd.MM.yyyy}, " +
+                        $"{reservation.GuestCount} qonaq.\n" +
+                        "Qonaq sayında dəyişiklik varsa sarayı əvvəlcədən xəbərdar edin.",
+                        "/rezervlerim"));
+
+                if (reservation.Venue is not null)
+                    await notifications.NotifyAsync(
+                        reservation.Venue.OwnerId,
+                        new NotificationMessage(
+                            NotificationType.ReservationReminder,
+                            $"{days} gün sonra tədbir var",
+                            $"«{reservation.Hall?.Name}» — {reservation.EventDate:dd.MM.yyyy}, " +
+                            $"{reservation.GuestCount} qonaq. Əlaqə: {reservation.ContactPhone}",
+                            "/panel"));
+            }
+        }
+
+        // Tədbirdən 2 gün sonra rəy dəvəti. Rəy yalnız keçmiş qonaqdan qəbul
+        // olunduğu üçün ən dəqiq rəylər məhz bu dəvətdən gəlir.
+        private async Task InviteReviewsAsync(
+            SadliqDbContext context, INotificationService notifications, CancellationToken token)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            var since = today.AddDays(-ReviewInviteAfterDays);
+
+            var finished = await context.Reservations
+                .Where(r => r.Status == ReservationStatus.Confirmed
+                            && r.ReviewInviteSentAt == null
+                            && r.EventDate <= since
+                            && r.EventDate > since.AddDays(-14))
+                .Include(r => r.Venue)
+                .Take(200)
+                .ToListAsync(token);
+
+            if (finished.Count == 0) return;
+
+            foreach (var reservation in finished)
+                reservation.ReviewInviteSentAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(token);
+
+            foreach (var reservation in finished)
+            {
+                // Artıq rəy yazıbsa dəvət göndərilmir
+                var hasReview = await context.Reviews
+                    .IgnoreQueryFilters()
+                    .AnyAsync(r => r.ReservationId == reservation.Id, token);
+
+                if (hasReview) continue;
+
+                await notifications.NotifyAsync(
+                    reservation.CustomerId,
+                    new NotificationMessage(
+                        NotificationType.SystemMessage,
+                        "Tədbiriniz necə keçdi?",
+                        $"«{reservation.Venue?.Name ?? "Saray"}» haqqında rəyiniz başqa ailələrə " +
+                        "seçim etməkdə kömək edir. Bir dəqiqənizi alır.",
+                        $"/venue/{reservation.VenueId}"));
             }
         }
     }
