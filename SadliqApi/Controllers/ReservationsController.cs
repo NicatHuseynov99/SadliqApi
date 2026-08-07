@@ -130,5 +130,41 @@ namespace SadliqApi.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        // ————— müştərinin əks-təklifi —————
+
+        // Müştəri öz şərtini təklif edir: «tarix uyğundur, qiymət yüksəkdir» kimi
+        [Authorize(Roles = "Customer")]
+        [HttpPost]
+        public async Task<IActionResult> CreateCustomerCounterOffer([FromBody] CreateCounterOfferDto dto)
+        {
+            var customerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.CreateCustomerCounterOfferAsync(dto, customerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> AcceptCustomerOffer(int id)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.AcceptCustomerOfferAsync(id, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> DeclineCustomerOffer(int id)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservationService.DeclineCustomerOfferAsync(id, ownerId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

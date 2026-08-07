@@ -14,8 +14,13 @@ namespace Entities.Concrete
         public int ReservationId { get; set; }
         public Reservation? Reservation { get; set; }
 
-        // Təklifi göndərən (sahib və ya saray administratoru)
+        // Təklifi göndərən istifadəçi
         public int CreatedByUserId { get; set; }
+
+        // Danışıq iki tərəflidir: təklifi saray da göndərə bilər, müştəri də.
+        // Əvvəl yalnız saray göndərirdi, müştərinin cavabı «hə/yox» ilə
+        // məhdudlaşırdı — «baha, bir az aşağı olar?» demək mümkün deyildi.
+        public bool IsFromCustomer { get; set; }
 
         // Boş olan sahə «dəyişmir» deməkdir
         public DateOnly? EventDate { get; set; }

@@ -849,6 +849,9 @@ namespace DataAccess.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsFromCustomer")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("MenuId")
                         .HasColumnType("integer");
 

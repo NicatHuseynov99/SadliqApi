@@ -27,5 +27,12 @@ namespace Business.Abstract
         // Müştərinin cavabı
         Task<IResult> AcceptCounterOfferAsync(int offerId, int customerId);
         Task<IResult> DeclineCounterOfferAsync(int offerId, int customerId);
+
+        // Danışıq iki tərəflidir: müştəri də öz şərtini təklif edə bilər
+        Task<IDataResult<ReservationCounterOffer>> CreateCustomerCounterOfferAsync(
+            CreateCounterOfferDto dto, int customerId);
+
+        Task<IResult> AcceptCustomerOfferAsync(int offerId, int ownerId);
+        Task<IResult> DeclineCustomerOfferAsync(int offerId, int ownerId);
     }
 }
