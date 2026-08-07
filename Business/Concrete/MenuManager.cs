@@ -37,19 +37,6 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Menu>>(menus);
         }
 
-        // Tək menyunun tərkibi ilə birgə detalları
-        public async Task<IDataResult<Menu>> GetByIdAsync(int id)
-        {
-            var query = await _menuDal.GetListAsync(m => m.Id == id);
-            var menu = await query
-                .Include(m => m.Items)
-                .FirstOrDefaultAsync();
-
-            return menu is null
-                ? new ErrorDataResult<Menu>("Menyu tapılmadı.")
-                : new SuccessDataResult<Menu>(menu);
-        }
-
         // Menyunu və tərkibindəki yeməkləri (50/60/70 AZN paketi) birlikdə əlavə edir
         public async Task<IDataResult<Menu>> CreateAsync(CreateMenuDto dto, int ownerId)
         {

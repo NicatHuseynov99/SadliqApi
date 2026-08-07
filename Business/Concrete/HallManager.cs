@@ -41,20 +41,6 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Hall>>(halls);
         }
 
-        // Tək zalın detalları
-        public async Task<IDataResult<Hall>> GetByIdAsync(int id)
-        {
-            var query = await _hallDal.GetListAsync(h => h.Id == id);
-            var hall = await query
-                .Include(h => h.Media)
-                .Include(h => h.Availability)
-                .FirstOrDefaultAsync();
-
-            return hall is null
-                ? new ErrorDataResult<Hall>("Zal tapılmadı.")
-                : new SuccessDataResult<Hall>(hall);
-        }
-
         // Saraya yeni zal əlavə edir — sahib, dəstək və ya sarayın administratoru
         public async Task<IDataResult<Hall>> CreateAsync(CreateHallDto dto, int ownerId)
         {

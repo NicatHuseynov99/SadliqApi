@@ -17,7 +17,6 @@ namespace Business.Abstract
         Task<IResult> SendTestAsync(CreateCampaignDto dto, int senderUserId);
 
         Task<IDataResult<PagedResult<CampaignDto>>> SearchAsync(CampaignQueryDto query);
-        Task<IDataResult<CampaignDto>> GetAsync(int campaignId);
 
         // Planlaşdırılmış göndərişi ləğv edir
         Task<IResult> CancelAsync(int campaignId);

@@ -239,15 +239,6 @@ namespace Business.Concrete.Notifications
             });
         }
 
-        public async Task<IDataResult<CampaignDto>> GetAsync(int campaignId)
-        {
-            var campaign = await _campaignDal.GetAsync(c => c.Id == campaignId);
-            if (campaign is null) return new ErrorDataResult<CampaignDto>("Bildiriş tapılmadı.");
-
-            var sender = await _userDal.GetAsync(u => u.Id == campaign.CreatedByUserId);
-            return new SuccessDataResult<CampaignDto>(ToDto(campaign, sender?.FullName ?? string.Empty));
-        }
-
         public async Task<IResult> CancelAsync(int campaignId)
         {
             var campaign = await _campaignDal.GetAsync(c => c.Id == campaignId);

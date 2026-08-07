@@ -25,16 +25,6 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Tək menyunun tərkibi ilə birgə detalları
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var result = await _menuService.GetByIdAsync(id);
-            if (!result.Success)
-                return NotFound(result);
-            return Ok(result);
-        }
-
         // Restoran sahibinin yeni menyu paketi əlavə etməsi
         [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPost]

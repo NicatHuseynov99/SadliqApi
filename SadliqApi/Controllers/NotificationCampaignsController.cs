@@ -52,14 +52,6 @@ namespace SadliqApi.Controllers
         public async Task<IActionResult> Search([FromQuery] CampaignQueryDto query)
             => Ok(await _service.SearchAsync(query));
 
-        [HttpGet("{id}")]
-        [Authorize(Roles = "SuperAdmin,Support")]
-        public async Task<IActionResult> Get(int id)
-        {
-            var result = await _service.GetAsync(id);
-            return result.Success ? Ok(result) : NotFound(result);
-        }
-
         [HttpPut("{id}")]
         [Authorize(Roles = "SuperAdmin,Support")]
         public async Task<IActionResult> Cancel(int id)

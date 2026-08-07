@@ -25,16 +25,6 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
-        // Tək zalın detalları
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var result = await _hallService.GetByIdAsync(id);
-            if (!result.Success)
-                return NotFound(result);
-            return Ok(result);
-        }
-
         // Restoran sahibinin öz sarayına yeni zal əlavə etməsi
         [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPost]
