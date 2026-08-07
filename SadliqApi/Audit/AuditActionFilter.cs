@@ -17,8 +17,9 @@ namespace SadliqApi.Audit
             "password", "currentpassword", "newpassword", "repeatpassword", "token", "passwordhash", "passwordsalt"
         };
 
-        // Oxuma sorğularından yalnız bunlar yazılır — qalanları jurnalı doldurardı
-        private static readonly string[] LoggedReadControllers = { "Admin", "Audit" };
+        // Oxuma sorğularından yalnız bunlar yazılır — qalanları jurnalı doldurardı.
+        // AdminChats buradadır, çünki şəxsi yazışmaya baxış iz qoymalıdır.
+        private static readonly string[] LoggedReadControllers = { "Admin", "Audit", "AdminChats" };
 
         // Ziyarət qeydiyyatı hər səhifə açılışında gedir — jurnala düşsə,
         // jurnal ziyarət statistikasına çevrilər
