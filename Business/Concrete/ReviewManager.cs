@@ -16,6 +16,8 @@ namespace Business.Concrete
         private readonly ITextCatalog _texts;
         private readonly IReservationDal _reservationDal;
         private readonly IVenueStaffDal _staffDal;
+        private readonly IVenueAccessService _access;
+        private readonly INotificationService _notifications;
 
         public ReviewManager(
             IReviewDal reviewDal,
@@ -24,10 +26,14 @@ namespace Business.Concrete
             IPlatformSettingsService settings,
             ITextCatalog texts,
             IReservationDal reservationDal,
-            IVenueStaffDal staffDal)
+            IVenueStaffDal staffDal,
+            IVenueAccessService access,
+            INotificationService notifications)
         {
             _reservationDal = reservationDal;
             _staffDal = staffDal;
+            _access = access;
+            _notifications = notifications;
             _reviewDal = reviewDal;
             _venueDal = venueDal;
             _reportDal = reportDal;
@@ -247,6 +253,77 @@ namespace Business.Concrete
         }
 
         // Bal və mətn yoxlaması — xəta varsa mesaj, yoxdursa null qaytarır
+        // ————— sarayın cavabı —————
+
+        private const int MaxReplyLength = 1000;
+
+        // Saray rəyə açıq cavab yazır və ya mövcud cavabı dəyişir.
+        // Şikayəti cavabsız qoymaq sarayın özünə ziyandır — oxuyan yalnız
+        // bir tərəfin sözünü görür.
+        public async Task<IResult> ReplyAsync(int reviewId, ReplyReviewDto dto, int userId)
+        {
+            var reply = dto.Reply?.Trim();
+
+            if (string.IsNullOrWhiteSpace(reply))
+                return new ErrorResult("Cavab mətni boş ola bilməz.");
+
+            if (reply.Length > MaxReplyLength)
+                return new ErrorResult($"Cavab {MaxReplyLength} simvoldan uzun ola bilməz.");
+
+            var review = await _reviewDal.GetAsync(r => r.Id == reviewId);
+            if (review is null)
+                return new ErrorResult("Rəy tapılmadı.");
+
+            if (!await _access.CanManageAsync(review.VenueId, userId))
+                return new ErrorResult("Bu rəy sizin sarayınıza aid deyil.");
+
+            var isFirstReply = review.OwnerReply is null;
+
+            review.OwnerReply = reply;
+            review.OwnerRepliedAt = DateTime.UtcNow;
+            review.OwnerReplyByUserId = userId;
+            await _reviewDal.UpdateAsync(review);
+
+            // Rəy sahibi cavabdan xəbər tutmalıdır — yoxsa cavabın mənası azalır.
+            // Yalnız ilk cavabda bildiriş gedir: hər redaktədə bildiriş narahatlıqdır.
+            if (isFirstReply && review.CustomerId is { } customerId)
+            {
+                var venue = await _venueDal.GetAsync(v => v.Id == review.VenueId);
+                var preview = reply.Length > 120 ? reply[..120] + "…" : reply;
+
+                await _notifications.NotifyAsync(
+                    customerId,
+                    new NotificationMessage(
+                        NotificationType.SystemMessage,
+                        $"«{venue?.Name ?? "Saray"}» rəyinizə cavab yazdı",
+                        preview,
+                        $"/venue/{review.VenueId}"));
+            }
+
+            return new SuccessResult(isFirstReply ? "Cavab yazıldı." : "Cavab yeniləndi.");
+        }
+
+        // Saray öz cavabını götürür
+        public async Task<IResult> DeleteReplyAsync(int reviewId, int userId)
+        {
+            var review = await _reviewDal.GetAsync(r => r.Id == reviewId);
+            if (review is null)
+                return new ErrorResult("Rəy tapılmadı.");
+
+            if (!await _access.CanManageAsync(review.VenueId, userId))
+                return new ErrorResult("Bu rəy sizin sarayınıza aid deyil.");
+
+            if (review.OwnerReply is null)
+                return new ErrorResult("Bu rəydə cavab yoxdur.");
+
+            review.OwnerReply = null;
+            review.OwnerRepliedAt = null;
+            review.OwnerReplyByUserId = null;
+            await _reviewDal.UpdateAsync(review);
+
+            return new SuccessResult("Cavab silindi.");
+        }
+
         private static string? Validate(int rating, string comment)
         {
             if (rating is < 1 or > 5)

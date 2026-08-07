@@ -74,6 +74,31 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Saray rəyə açıq cavab yazır. Bir rəyə bir cavab olur — təkrar
+        // çağırış mövcud cavabı əvəz edir.
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Reply(int id, [FromBody] ReplyReviewDto dto)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reviewService.ReplyAsync(id, dto, userId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        // Saray öz cavabını götürür
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteReply(int id)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reviewService.DeleteReplyAsync(id, userId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // İstifadəçi öz rəyini silir
         [Authorize]
         [HttpDelete("{id}")]

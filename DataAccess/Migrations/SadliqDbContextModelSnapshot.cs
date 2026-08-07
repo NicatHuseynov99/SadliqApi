@@ -922,6 +922,15 @@ namespace DataAccess.Migrations
                     b.Property<bool>("IsVerifiedGuest")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("OwnerRepliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OwnerReply")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OwnerReplyByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
 

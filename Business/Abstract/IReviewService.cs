@@ -19,5 +19,9 @@ namespace Business.Abstract
 
         // Rəy yaza bilərmi: səhifə formanı boş yerə göstərməsin
         Task<IDataResult<ReviewEligibilityDto>> CanReviewAsync(int venueId, int userId);
+
+        // Sarayın rəyə açıq cavabı — bir rəyə bir cavab, redaktə edilə bilir
+        Task<IResult> ReplyAsync(int reviewId, ReplyReviewDto dto, int userId);
+        Task<IResult> DeleteReplyAsync(int reviewId, int userId);
     }
 }

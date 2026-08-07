@@ -28,6 +28,16 @@ namespace Entities.Concrete
         // Şikayət sayı — moderatorun diqqətini yönəltmək üçün saxlanılır
         public int ReportCount { get; set; }
 
+        // Sarayın rəyə açıq cavabı. Bir rəyə bir cavab olur, redaktə edilə bilir.
+        // Şikayəti cavabsız qoymaq sarayın özünə ziyandır: oxuyan yalnız
+        // bir tərəfi görür.
+        public string? OwnerReply { get; set; }
+        public DateTime? OwnerRepliedAt { get; set; }
+
+        // Cavabı saray tərəfindən kim yazıb — sahibin özü, administrator
+        // və ya (dəstək məqsədilə) platforma işçisi
+        public int? OwnerReplyByUserId { get; set; }
+
         // Rəy həqiqətən orada olan qonaqdandırsa: təsdiqlənmiş və tarixi keçmiş
         // rezervi var. Yalnız belə rəylər reytinq ortalamasına düşür — yoxsa
         // reytinq heç nə ifadə etmir.
