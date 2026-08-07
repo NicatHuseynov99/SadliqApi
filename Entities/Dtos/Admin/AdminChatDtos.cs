@@ -64,5 +64,19 @@ namespace Entities.Dtos.Admin
         public string Body { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public bool IsRead { get; set; }
+
+        // Gizlədilmiş mesaj tərəflərə görünmür, admin isə görür
+        public bool IsHidden { get; set; }
+        public string? HiddenReason { get; set; }
+        public DateTime? HiddenAt { get; set; }
+    }
+
+    // Mesajın gizlədilməsi və ya yenidən göstərilməsi
+    public class SetMessageHiddenDto
+    {
+        public bool IsHidden { get; set; }
+
+        // Gizlədəndə məcburidir — nəyə görə çıxarıldığı qeyd olunmalıdır
+        public string? Reason { get; set; }
     }
 }

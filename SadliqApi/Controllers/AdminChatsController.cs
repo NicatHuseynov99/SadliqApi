@@ -2,12 +2,14 @@ using Business.Abstract;
 using Entities.Dtos.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
     // Müştəri ilə saray arasındakı yazışmalara adminin nəzarəti.
-    // Yalnız oxumaq üçündür: yazmaq və silmək qəsdən yoxdur, çünki yazışma
-    // mübahisədə dəlildir — dəyişdirilə bilməməlidir.
+    // Admin yazışmaya yaza bilmir və mesajı silə bilmir — yazışma mübahisədə
+    // dəlildir. Yeganə müdaxilə: qanunsuz mesajı tərəflərdən gizlətmək
+    // (mesaj bazada səbəbi ilə qalır, admin görməkdə davam edir).
     //
     // Baxışın özü jurnala düşür (AuditActionFilter): kimin hansı şəxsi
     // yazışmanı açdığı izlənilməlidir.
@@ -23,6 +25,8 @@ namespace SadliqApi.Controllers
             _service = service;
         }
 
+        private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         // Açılmış yazışmaların siyahısı — saray, müştəri və mesaj mətni üzrə axtarışla
         [HttpGet]
         public async Task<IActionResult> Search([FromQuery] AdminChatQueryDto query)
@@ -34,6 +38,15 @@ namespace SadliqApi.Controllers
         {
             var result = await _service.GetAsync(offerId);
             return result.Success ? Ok(result) : NotFound(result);
+        }
+
+        // Qanunsuz mesajı tərəflərdən gizlədir və ya yenidən göstərir.
+        // Mesaj silinmir — admin onu görməkdə davam edir.
+        [HttpPut("{messageId}")]
+        public async Task<IActionResult> SetHidden(int messageId, [FromBody] SetMessageHiddenDto dto)
+        {
+            var result = await _service.SetHiddenAsync(messageId, dto, UserId);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 }

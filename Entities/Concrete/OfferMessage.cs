@@ -25,6 +25,13 @@ namespace Entities.Concrete
         // Qarşı tərəf oxuyubsa
         public DateTime? ReadAt { get; set; }
 
+        // Moderasiya: qanunsuz və ya təhqiredici mesaj tərəflərdən gizlədilir,
+        // amma silinmir — admin onu görməkdə davam edir, çünki mübahisədə dəlildir.
+        public bool IsHidden { get; set; }
+        public string? HiddenReason { get; set; }
+        public DateTime? HiddenAt { get; set; }
+        public int? HiddenByUserId { get; set; }
+
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
     }

@@ -783,8 +783,9 @@ namespace Business.Concrete
             if (error is not null)
                 return new ErrorDataResult<List<OfferMessageDto>>(error.Message);
 
+            // Admin tərəfindən gizlədilmiş mesaj tərəflərə göstərilmir
             var messages = await _context.OfferMessages
-                .Where(m => m.OfferId == offerId)
+                .Where(m => m.OfferId == offerId && !m.IsDeleted && !m.IsHidden)
                 .Include(m => m.Sender)
                 .OrderBy(m => m.CreatedAt)
                 .ToListAsync();

@@ -141,7 +141,10 @@ namespace Business.Concrete
                         : (m.Sender.FirstName + " " + m.Sender.LastName).Trim(),
                     Body = m.Body,
                     CreatedAt = m.CreatedAt,
-                    IsRead = m.ReadAt != null
+                    IsRead = m.ReadAt != null,
+                    IsHidden = m.IsHidden,
+                    HiddenReason = m.HiddenReason,
+                    HiddenAt = m.HiddenAt
                 })
                 .ToListAsync();
 
@@ -159,6 +162,34 @@ namespace Business.Concrete
                 ChatOpenedAt = offer.ChatOpenedAt.Value,
                 Messages = messages
             });
+        }
+
+        // Qanunsuz və ya təhqiredici mesajı tərəflərdən gizlədir. Mesaj bazadan
+        // silinmir — admin onu səbəbi ilə birlikdə görməkdə davam edir.
+        public async Task<IResult> SetHiddenAsync(int messageId, SetMessageHiddenDto dto, int adminUserId)
+        {
+            var message = await _context.OfferMessages
+                .FirstOrDefaultAsync(m => m.Id == messageId && !m.IsDeleted);
+
+            if (message is null)
+                return new ErrorResult("Mesaj tapılmadı.");
+
+            if (message.IsHidden == dto.IsHidden)
+                return new ErrorResult(dto.IsHidden ? "Mesaj artıq gizlədilib." : "Mesaj artıq görünür.");
+
+            if (dto.IsHidden && string.IsNullOrWhiteSpace(dto.Reason))
+                return new ErrorResult("Gizlətmə səbəbini yazın.");
+
+            message.IsHidden = dto.IsHidden;
+            message.HiddenReason = dto.IsHidden ? dto.Reason!.Trim() : null;
+            message.HiddenAt = dto.IsHidden ? DateTime.UtcNow : null;
+            message.HiddenByUserId = dto.IsHidden ? adminUserId : null;
+
+            await _context.SaveChangesAsync();
+
+            return new SuccessResult(dto.IsHidden
+                ? "Mesaj tərəflərdən gizlədildi."
+                : "Mesaj yenidən göstərilir.");
         }
 
         private static string FullName(User? user) =>
