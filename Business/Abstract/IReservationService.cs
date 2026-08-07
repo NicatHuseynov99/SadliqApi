@@ -15,8 +15,8 @@ namespace Business.Abstract
         Task<IResult> UpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto, int ownerId);
 
         // Platforma admini üçün — sahiblik yoxlaması aparılmır
-        Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto);
-        Task<IResult> CancelAsync(int reservationId, int customerId);
+        Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto, int adminUserId);
+        Task<IResult> CancelAsync(int reservationId, int customerId, string? reason = null);
 
         // Sahib sorğunu açdı — müştəri «baxıldı» görsün
         Task<IResult> MarkSeenAsync(int reservationId, int ownerId);

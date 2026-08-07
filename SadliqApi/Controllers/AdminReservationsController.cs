@@ -2,6 +2,7 @@ using Business.Abstract;
 using Entities.Dtos.Reservation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace SadliqApi.Controllers
 {
@@ -50,7 +51,8 @@ namespace SadliqApi.Controllers
         [HttpPut("{reservationId}")]
         public async Task<IActionResult> UpdateStatus(int reservationId, [FromBody] UpdateReservationStatusDto dto)
         {
-            var result = await _reservations.AdminUpdateStatusAsync(reservationId, dto);
+            var adminUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _reservations.AdminUpdateStatusAsync(reservationId, dto, adminUserId);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);

@@ -39,6 +39,13 @@ namespace Entities.Concrete
         // Saray sorğuya nə vaxt cavab verdi — cavab müddəti hesabatı üçün
         public DateTime? RespondedAt { get; set; }
 
+        // Ləğvin izi: təsdiqlənmiş tədbir ləğv olunanda kim, nə vaxt və niyə
+        // etdiyi qeyd olunmalıdır. İzsiz ləğv həm müştəri, həm saray üçün
+        // etibarsızlıq yaradır.
+        public DateTime? CancelledAt { get; set; }
+        public int? CancelledByUserId { get; set; }
+        public string? CancellationReason { get; set; }
+
         // Tarixin tutulma müddəti — bazada zalın təqvimində saxlanılır,
         // müştəriyə «cavaba nə qədər qalıb» göstərmək üçün siyahıda doldurulur
         [NotMapped]

@@ -342,12 +342,27 @@ namespace Business.Concrete
             if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
-            return await ApplyStatusAsync(reservation, dto.Status);
+            if (reservation.Status == dto.Status)
+                return new ErrorResult("Rezerv artıq bu vəziyyətdədir.");
+
+            // İcazəsiz keçid: təsdiqlənmiş tədbiri gizlicə «rədd edilib» etmək,
+            // ləğv edilmişi geri qaytarmaq və s. mümkün olmamalıdır
+            if (!ReservationStatusRules.OwnerCanMove(reservation.Status, dto.Status))
+                return new ErrorResult(ReservationStatusRules.Explain(reservation.Status, dto.Status));
+
+            if (ReservationStatusRules.RequiresReason(reservation.Status, dto.Status)
+                && string.IsNullOrWhiteSpace(dto.Reason))
+                return new ErrorResult("Təsdiqlənmiş tədbiri ləğv edərkən səbəbi yazın.");
+
+            return await ApplyStatusAsync(reservation, dto.Status, ownerId, dto.Reason);
         }
 
         // Platforma admini sahibin icazəsi olmadan da statusu dəyişə bilər —
-        // mübahisəli hallarda müdaxilə etmək lazım gəlir. Nəticə eyni cür işlənir.
-        public async Task<IResult> AdminUpdateStatusAsync(int reservationId, UpdateReservationStatusDto dto)
+        // mübahisəli hallarda müdaxilə etmək lazım gəlir. Ona görə keçid
+        // cədvəli admin üçün tətbiq olunmur: admin son çarədir. Amma səbəb
+        // həmişə tələb olunur — kənardan edilən dəyişiklik izahsız qalmamalıdır.
+        public async Task<IResult> AdminUpdateStatusAsync(
+            int reservationId, UpdateReservationStatusDto dto, int adminUserId)
         {
             var reservation = await _reservationDal.GetAsync(r => r.Id == reservationId);
             if (reservation is null)
@@ -356,11 +371,18 @@ namespace Business.Concrete
             if (reservation.Status == dto.Status)
                 return new ErrorResult("Rezerv artıq bu vəziyyətdədir.");
 
-            return await ApplyStatusAsync(reservation, dto.Status);
+            if (string.IsNullOrWhiteSpace(dto.Reason))
+                return new ErrorResult("Müdaxilənin səbəbini yazın.");
+
+            return await ApplyStatusAsync(reservation, dto.Status, adminUserId, dto.Reason);
         }
 
         // Status dəyişikliyinin bütün nəticələri: təqvim, bildiriş, jurnal
-        private async Task<IResult> ApplyStatusAsync(Reservation reservation, ReservationStatus status)
+        private async Task<IResult> ApplyStatusAsync(
+            Reservation reservation,
+            ReservationStatus status,
+            int? changedByUserId = null,
+            string? reason = null)
         {
             var dto = new UpdateReservationStatusDto { Status = status };
             reservation.Status = dto.Status;
@@ -368,6 +390,15 @@ namespace Business.Concrete
             // Cavab müddəti hesabatı üçün: sorğu nə vaxt cavablandı
             if (status is ReservationStatus.Confirmed or ReservationStatus.Rejected)
                 reservation.RespondedAt ??= DateTime.UtcNow;
+
+            // Ləğvin izi qalmalıdır: kim, nə vaxt, niyə
+            if (status == ReservationStatus.Cancelled)
+            {
+                reservation.CancelledAt = DateTime.UtcNow;
+                reservation.CancelledByUserId = changedByUserId;
+                reservation.CancellationReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+            }
+
             await _reservationDal.UpdateAsync(reservation);
 
             var availability = await _availabilityDal.GetAsync(
@@ -402,22 +433,37 @@ namespace Business.Concrete
                 _ => "gözləmə vəziyyətinə qaytardı"
             };
 
+            var reasonText = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" — səbəb: {reason.Trim()}";
+
             _audit.Set(
                 "ReservationStatusChanged",
-                $"«{venueName}» üçün {reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu {statusText}",
+                $"«{venueName}» üçün {reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu {statusText}{reasonText}",
                 "Reservation", reservation.Id, reservation.VenueId);
 
             return new SuccessResult("Status yeniləndi.");
         }
 
         // Müştərinin öz göndərdiyi rezerv sorğusunu ləğv etməsi; günü yenidən boş edir
-        public async Task<IResult> CancelAsync(int reservationId, int customerId)
+        public async Task<IResult> CancelAsync(int reservationId, int customerId, string? reason = null)
         {
             var reservation = await _reservationDal.GetAsync(r => r.Id == reservationId && r.CustomerId == customerId);
             if (reservation is null)
                 return new ErrorResult("Rezerv tapılmadı və ya sizə aid deyil.");
 
+            // Artıq bağlanmış rezervi yenidən ləğv etmək olmaz
+            if (!ReservationStatusRules.CustomerCanCancel(reservation.Status))
+                return new ErrorResult(
+                    $"Rezerv artıq «{ReservationStatusRules.Label(reservation.Status)}» vəziyyətindədir.");
+
+            // Təsdiqlənmiş tədbirin ləğvi sarayı zərərə salır — səbəbsiz olmamalıdır
+            if (ReservationStatusRules.RequiresReason(reservation.Status, ReservationStatus.Cancelled)
+                && string.IsNullOrWhiteSpace(reason))
+                return new ErrorResult("Təsdiqlənmiş tədbiri ləğv edərkən səbəbi yazın.");
+
             reservation.Status = ReservationStatus.Cancelled;
+            reservation.CancelledAt = DateTime.UtcNow;
+            reservation.CancelledByUserId = customerId;
+            reservation.CancellationReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
             await _reservationDal.UpdateAsync(reservation);
 
             var availability = await _availabilityDal.GetAsync(
@@ -435,7 +481,8 @@ namespace Business.Concrete
 
             _audit.Set(
                 "ReservationCancelled",
-                $"{reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu ləğv etdi",
+                $"{reservation.EventDate:dd.MM.yyyy} tarixli rezerv sorğusunu ləğv etdi"
+                + (reservation.CancellationReason is null ? string.Empty : $" — səbəb: {reservation.CancellationReason}"),
                 "Reservation", reservation.Id, reservation.VenueId);
 
             return new SuccessResult("Rezerv ləğv edildi.");

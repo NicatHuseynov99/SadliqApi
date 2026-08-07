@@ -79,10 +79,10 @@ namespace SadliqApi.Controllers
         // Müştərinin öz göndərdiyi rezerv sorğusunu ləğv etməsi
         [Authorize(Roles = "Customer")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> Cancel(int id)
+        public async Task<IActionResult> Cancel(int id, [FromBody] CancelReservationDto? dto = null)
         {
             var customerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var result = await _reservationService.CancelAsync(id, customerId);
+            var result = await _reservationService.CancelAsync(id, customerId, dto?.Reason);
             if (!result.Success)
                 return BadRequest(result);
             return Ok(result);
