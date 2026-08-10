@@ -60,7 +60,10 @@ namespace Business.Concrete
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedAt,
                 HallIds = s.Halls.Select(h => h.HallId).ToList(),
-                HallNames = s.Halls.Select(h => h.Hall?.Name ?? string.Empty).ToList()
+                HallNames = s.Halls.Select(h => h.Hall?.Name ?? string.Empty).ToList(),
+                CanConfirmReservations = s.CanConfirmReservations,
+                CanEditCalendar = s.CanEditCalendar,
+                CanSendOffers = s.CanSendOffers
             }).ToList();
 
             return new SuccessDataResult<List<VenueStaffDto>>(result);
@@ -198,6 +201,36 @@ namespace Business.Concrete
             return new SuccessResult(hallIds.Count == 0
                 ? "Administrator sarayın bütün zallarında işləyə bilər."
                 : $"{hallIds.Count} zal təyin olundu.");
+        }
+
+        // Administratorun səlahiyyətlərini təyin edir. Rəhbər «sorğuları görsün,
+        // cavabı mən verim» deyə bilməlidir — əvvəl belə imkan yox idi.
+        public async Task<IResult> SetPermissionsAsync(
+            int staffId, SetStaffPermissionsDto dto, int ownerId)
+        {
+            var staff = await _staffDal.GetAsync(s => s.Id == staffId);
+            if (staff is null)
+                return new ErrorResult("Administrator tapılmadı.");
+
+            if (!await _access.CanModifyAsync(staff.VenueId, ownerId))
+                return new ErrorResult("Bu administrator sizin sarayınıza aid deyil.");
+
+            staff.CanConfirmReservations = dto.CanConfirmReservations;
+            staff.CanEditCalendar = dto.CanEditCalendar;
+            staff.CanSendOffers = dto.CanSendOffers;
+
+            await _staffDal.UpdateAsync(staff);
+
+            var granted = new[]
+            {
+                dto.CanConfirmReservations ? "rezerv təsdiqi" : null,
+                dto.CanEditCalendar ? "təqvim" : null,
+                dto.CanSendOffers ? "təkliflər" : null
+            }.Where(x => x is not null).ToList();
+
+            return new SuccessResult(granted.Count == 0
+                ? "Administrator yalnız sorğuları görəcək — cavabı siz verəcəksiniz."
+                : $"Səlahiyyətlər yeniləndi: {string.Join(", ", granted)}.");
         }
 
         // Yalnız həmin saraya aid olan zal Id-lərini saxlayır — başqa sarayın zalı verilə bilməz

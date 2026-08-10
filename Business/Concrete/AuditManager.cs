@@ -79,6 +79,73 @@ namespace Business.Concrete
             return new SuccessDataResult<PagedResult<AuditLog>>(result);
         }
 
+        // Sahibin öz sarayları üzrə fəaliyyət jurnalı. Rəhbər administratoruna
+        // səlahiyyət verirsə, onun nə etdiyini də görə bilməlidir — əks halda
+        // səlahiyyət vermək kor inam olur.
+        //
+        // Platforma işçilərinin əməliyyatları bura düşmür: sahib üçün bu jurnal
+        // «mənim adamlarım nə etdi» sualına cavabdır.
+        public async Task<IDataResult<PagedResult<AuditLog>>> SearchForOwnerAsync(
+            AuditSearchDto dto, List<int> venueIds)
+        {
+            var page = dto.Page < 1 ? 1 : dto.Page;
+            var pageSize = dto.PageSize is < 1 or > 100 ? 30 : dto.PageSize;
+
+            if (venueIds.Count == 0)
+                return new SuccessDataResult<PagedResult<AuditLog>>(new PagedResult<AuditLog>
+                {
+                    Items = new List<AuditLog>(),
+                    Page = page,
+                    PageSize = pageSize
+                });
+
+            var query = await _auditLogDal.GetListAsync();
+
+            query = query.Where(a =>
+                a.VenueId != null
+                && venueIds.Contains(a.VenueId.Value)
+                && a.UserRole != UserRole.SuperAdmin
+                && a.UserRole != UserRole.Support);
+
+            if (!string.IsNullOrWhiteSpace(dto.Q))
+            {
+                var term = $"%{dto.Q.Trim()}%";
+                query = query.Where(a =>
+                    EF.Functions.ILike(a.Description, term) || EF.Functions.ILike(a.UserFullName, term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Action))
+                query = query.Where(a => a.Action == dto.Action);
+
+            if (dto.UserId.HasValue)
+                query = query.Where(a => a.UserId == dto.UserId);
+
+            if (dto.VenueId.HasValue && venueIds.Contains(dto.VenueId.Value))
+                query = query.Where(a => a.VenueId == dto.VenueId);
+
+            if (dto.From.HasValue)
+                query = query.Where(a => a.CreatedAt >= dto.From.Value.ToUniversalTime());
+
+            if (dto.To.HasValue)
+                query = query.Where(a => a.CreatedAt <= dto.To.Value.ToUniversalTime());
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new SuccessDataResult<PagedResult<AuditLog>>(new PagedResult<AuditLog>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            });
+        }
+
         // Süzgəc siyahısı bazadakı real əməliyyatlardan qurulur
         public async Task<IDataResult<AuditFilterOptionsDto>> GetFilterOptionsAsync(UserRole viewerRole)
         {

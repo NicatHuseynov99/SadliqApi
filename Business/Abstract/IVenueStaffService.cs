@@ -23,6 +23,9 @@ namespace Business.Abstract
         // Administratorun işləyə biləcəyi zalları təyin edir
         Task<IResult> SetHallsAsync(int staffId, SetStaffHallsDto dto, int ownerId);
 
+        // Administratorun səlahiyyətləri: rezerv təsdiqi, təqvim, təkliflər
+        Task<IResult> SetPermissionsAsync(int staffId, SetStaffPermissionsDto dto, int ownerId);
+
         // Administratorun parolunu sıfırlayır
         Task<IResult> ResetPasswordAsync(int staffId, ResetStaffPasswordDto dto, int ownerId);
     }

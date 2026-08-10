@@ -18,5 +18,10 @@ namespace Entities.Dtos.Staff
         // Boşdursa administrator sarayın bütün zallarına baxa bilir
         public List<int> HallIds { get; set; } = new();
         public List<string> HallNames { get; set; } = new();
+
+        // Səlahiyyətlər — rəhbər hər birini ayrıca verir
+        public bool CanConfirmReservations { get; set; }
+        public bool CanEditCalendar { get; set; }
+        public bool CanSendOffers { get; set; }
     }
 }

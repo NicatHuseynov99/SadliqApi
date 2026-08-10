@@ -146,6 +146,11 @@ namespace Business.Concrete
             if (!await _access.CanModifyHallAsync(hallId, ownerId))
                 return new ErrorResult("Bu zal sizə aid deyil.");
 
+            // Rəhbər administratora təqvimə toxunmaq səlahiyyəti verməyə bilər
+            if (!await _access.HasStaffPermissionAsync(
+                    hall.VenueId, ownerId, StaffPermission.EditCalendar))
+                return new ErrorResult("Təqvimi dəyişmək səlahiyyətiniz yoxdur.");
+
             var day = await _availabilityDal.GetAsync(a => a.HallId == hallId && a.Date == dto.Date);
 
             if (day is null)

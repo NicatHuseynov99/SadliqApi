@@ -1491,6 +1491,15 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("CanConfirmReservations")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanEditCalendar")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanSendOffers")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 

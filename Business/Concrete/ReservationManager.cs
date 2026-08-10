@@ -342,6 +342,11 @@ namespace Business.Concrete
             if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
                 return new ErrorResult("Bu rezerv sizə aid deyil.");
 
+            // Rəhbər administratora təsdiq səlahiyyəti verməyə bilər
+            if (!await _access.HasStaffPermissionAsync(
+                    reservation.VenueId, ownerId, StaffPermission.ConfirmReservations))
+                return new ErrorResult("Rezervi təsdiqləmək/rədd etmək səlahiyyətiniz yoxdur.");
+
             if (reservation.Status == dto.Status)
                 return new ErrorResult("Rezerv artıq bu vəziyyətdədir.");
 
@@ -526,6 +531,11 @@ namespace Business.Concrete
 
             if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
                 return new ErrorDataResult<ReservationCounterOffer>("Bu rezerv sizə aid deyil.");
+
+            if (!await _access.HasStaffPermissionAsync(
+                    reservation.VenueId, ownerId, StaffPermission.SendOffers))
+                return new ErrorDataResult<ReservationCounterOffer>(
+                    "Əks-təklif göndərmək səlahiyyətiniz yoxdur.");
 
             if (reservation.Status is not (ReservationStatus.Pending or ReservationStatus.CounterOffered))
                 return new ErrorDataResult<ReservationCounterOffer>(
@@ -971,6 +981,12 @@ namespace Business.Concrete
 
             if (!await _access.CanModifyHallAsync(reservation.HallId, ownerId))
                 return (null, null, new ErrorResult("Bu rezerv sizə aid deyil."));
+
+            // Müştərinin təklifinə cavab vermək rezervin taleyini həll edir —
+            // təsdiq səlahiyyəti tələb olunur
+            if (!await _access.HasStaffPermissionAsync(
+                    reservation.VenueId, ownerId, StaffPermission.ConfirmReservations))
+                return (null, null, new ErrorResult("Bu təklifə cavab vermək səlahiyyətiniz yoxdur."));
 
             return (offer, reservation, null);
         }

@@ -59,6 +59,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Administratorun səlahiyyətləri — rəhbər «görsün, amma cavabı mən verim» deyə bilər
+        [HttpPut("{id}")]
+        public async Task<IActionResult> SetPermissions(int id, [FromBody] SetStaffPermissionsDto dto)
+        {
+            var result = await _staffService.SetPermissionsAsync(id, dto, CurrentUserId);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
         // Təyinatı siyahıdan silir
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

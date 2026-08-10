@@ -20,6 +20,20 @@ namespace Entities.Concrete
 
     public enum VenueOfferStatus { Sent, Accepted, Declined, Withdrawn }
 
+    // Saray administratorunun səlahiyyətləri. Sahib hamısına malikdir;
+    // administratora rəhbər ayrıca verir.
+    public enum StaffPermission
+    {
+        // Rezervi təsdiqləmək və rədd etmək
+        ConfirmReservations,
+
+        // Zalın təqvimində günü bağlamaq/açmaq
+        EditCalendar,
+
+        // Əks-təklif və açıq sorğulara təklif göndərmək
+        SendOffers
+    }
+
     // Şikayət/mübahisə. Müştəri saraydan, saray müştəridən şikayət edə bilər —
     // qərarı platforma verir və qərarın izi qalır.
     //

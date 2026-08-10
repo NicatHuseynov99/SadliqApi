@@ -18,6 +18,15 @@ namespace Entities.Concrete
 
         // Silmək əvəzinə deaktiv edilir ki, kimin nəyi təsdiqlədiyi tarixçədə qalsın
         public bool IsActive { get; set; } = true;
+
+        // İcazə dərəcəsi. Əvvəl belə bir bölgü yox idi: zala təyin olunan
+        // administrator həmin zalda tam səlahiyyətli olurdu. Real sarayda
+        // rəhbər çox vaxt bunu istəmir — «sorğuları görsün, cavabı mən verim».
+        //
+        // Mövcud administratorlar üçün hamısı true qalır ki, davranış dəyişməsin.
+        public bool CanConfirmReservations { get; set; } = true;
+        public bool CanEditCalendar { get; set; } = true;
+        public bool CanSendOffers { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Boşdursa sarayın bütün zalları, doludursa yalnız seçilmiş zallar

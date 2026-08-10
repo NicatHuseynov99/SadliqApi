@@ -1,3 +1,5 @@
+using Entities.Concrete;
+
 namespace Business.Abstract
 {
     // Saray səviyyəsində səlahiyyət yoxlaması — bütün servislər eyni məntiqdən istifadə etsin deyə
@@ -20,6 +22,9 @@ namespace Business.Abstract
 
         // İstifadəçinin idarə edə bildiyi bütün sarayların Id-ləri (sahib olduqları + təyinatları)
         Task<List<int>> GetManagedVenueIdsAsync(int userId);
+
+        // Administratorun konkret səlahiyyəti — sahib üçün həmişə true
+        Task<bool> HasStaffPermissionAsync(int venueId, int userId, StaffPermission permission);
 
         // Konkret zalda iş görə bilirmi (administratora yalnız seçilmiş zallar verilir)
         Task<bool> CanManageHallAsync(int hallId, int userId);

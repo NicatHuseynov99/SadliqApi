@@ -83,6 +83,28 @@ namespace Business.Concrete
             return allowedHalls is null || allowedHalls.Contains(hallId);
         }
 
+        // Administratorun konkret səlahiyyəti var? Sahib və platforma işçisi
+        // üçün həmişə true — məhdudiyyət yalnız təyin olunmuş administratora aiddir.
+        public async Task<bool> HasStaffPermissionAsync(int venueId, int userId, StaffPermission permission)
+        {
+            if (await IsOwnerAsync(venueId, userId))
+                return true;
+
+            var staff = await _staffDal.GetAsync(
+                s => s.VenueId == venueId && s.UserId == userId && s.IsActive);
+
+            if (staff is null)
+                return false;
+
+            return permission switch
+            {
+                StaffPermission.ConfirmReservations => staff.CanConfirmReservations,
+                StaffPermission.EditCalendar => staff.CanEditCalendar,
+                StaffPermission.SendOffers => staff.CanSendOffers,
+                _ => false
+            };
+        }
+
         public async Task<List<int>> GetManagedVenueIdsAsync(int userId)
         {
             // SuperAdmin və dəstək admini bütün sarayları görür
