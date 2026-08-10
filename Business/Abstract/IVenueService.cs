@@ -24,6 +24,9 @@ namespace Business.Abstract
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);
         Task<IResult> UpdateAsync(int id, UpdateVenueDto dto, int ownerId);
+
+        // Rədd edilmiş saray düzəldilib yenidən yoxlamağa göndərilir
+        Task<IResult> ResubmitAsync(int venueId, int ownerId);
         Task<IResult> DeleteAsync(int id, int ownerId);
 
         // Admin əməliyyatları

@@ -42,6 +42,11 @@ namespace Entities.Dtos.Venue
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
 
+        // Rədd izi və sahibkarın düzəlişdən sonra yenidən göndərməsi
+        public string? RejectionReason { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public DateTime? ResubmittedAt { get; set; }
+
         public int OwnerId { get; set; }
         public string OwnerName { get; set; } = string.Empty;
         public string? OwnerEmail { get; set; }
@@ -60,6 +65,9 @@ namespace Entities.Dtos.Venue
     public class SetVenueApprovedDto
     {
         public bool IsApproved { get; set; }
+
+        // Təsdiq geri alınırsa məcburidir — sahibkar nəyi düzəldəcəyini bilməlidir
+        public string? Reason { get; set; }
     }
 
     public class ChangeVenueOwnerDto

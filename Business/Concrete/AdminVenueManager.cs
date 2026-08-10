@@ -124,6 +124,9 @@ namespace Business.Concrete
                     HasValetParking = r.Venue.HasValetParking,
                     CoverImageUrl = r.Venue.CoverImageUrl,
                     IsApproved = r.Venue.IsApproved,
+                    RejectionReason = r.Venue.RejectionReason,
+                    RejectedAt = r.Venue.RejectedAt,
+                    ResubmittedAt = r.Venue.ResubmittedAt,
                     CreatedAt = r.Venue.CreatedAt,
                     IsDeleted = r.Venue.IsDeleted,
                     DeletedAt = r.Venue.DeletedAt,
@@ -162,7 +165,29 @@ namespace Business.Concrete
             if (venue.IsApproved == dto.IsApproved)
                 return new ErrorResult(dto.IsApproved ? "Saray artıq təsdiqlidir." : "Saray onsuz da təsdiqli deyil.");
 
+            var reason = dto.Reason?.Trim();
+
+            // Rədd edilirsə səbəb məcburidir: sahibkar nəyi düzəldəcəyini bilməlidir
+            if (!dto.IsApproved && string.IsNullOrWhiteSpace(reason))
+                return new ErrorResult("Təsdiqi geri alarkən səbəbi yazın — sahibkar bunu görəcək.");
+
             venue.IsApproved = dto.IsApproved;
+
+            if (dto.IsApproved)
+            {
+                // Təsdiqləndikdə köhnə rədd izi təmizlənir
+                venue.RejectionReason = null;
+                venue.RejectedAt = null;
+                venue.RejectedByUserId = null;
+                venue.ResubmittedAt = null;
+            }
+            else
+            {
+                venue.RejectionReason = reason;
+                venue.RejectedAt = DateTime.UtcNow;
+                venue.ResubmittedAt = null;
+            }
+
             await _venueDal.UpdateAsync(venue);
 
             _audit.Set(
@@ -182,7 +207,8 @@ namespace Business.Concrete
                         : $"«{venue.Name}» saytdan çıxarıldı",
                     dto.IsApproved
                         ? "Sarayınız yoxlanıldı və saytda göründü. Artıq müştərilər onu görə və rezerv sorğusu göndərə bilər."
-                        : "Sarayınızın təsdiqi geri alındı və saytda görünmür. Səbəbi öyrənmək üçün bizimlə əlaqə saxlayın.",
+                        : $"Sarayınız saytda görünmür.\n\nSəbəb: {reason}\n\n"
+                          + "Düzəlişi edib panelinizdən yenidən yoxlamağa göndərə bilərsiniz.",
                     "/panel"));
 
             return new SuccessResult(dto.IsApproved

@@ -55,9 +55,13 @@ namespace Business.Concrete
             return staff is not null;
         }
 
-        // Təsdiqlənməmiş saray dondurulmuş vəziyyətdədir: sahibkar onu görür,
-        // amma nə redaktə edə, nə zal/menyu əlavə edə bilir. Belə olmasa müraciət
-        // yoxlanılarkən məlumat dəyişər və təsdiq mənasını itirər.
+        // Yoxlama gedərkən saray dondurulur: məlumat dəyişsə, təsdiq mənasını
+        // itirər. Amma rədd edilmiş saray yoxlanılmır — geri qaytarılıb və
+        // sahibkar düzəliş etməlidir, yoxsa «düzəldib yenidən göndər» axını
+        // mümkün olmaz.
+        //
+        // Yoxlamada: heç baxılmayıb (səbəb yoxdur) və ya yenidən göndərilib.
+        // Redaktə açıqdır: rədd edilib və hələ yenidən göndərilməyib.
         public async Task<bool> CanModifyAsync(int venueId, int userId)
         {
             if (await HasPlatformWideAccessAsync(userId))
@@ -67,7 +71,13 @@ namespace Business.Concrete
                 return false;
 
             var venue = await _venueDal.GetAsync(v => v.Id == venueId);
-            return venue?.IsApproved == true;
+            if (venue is null)
+                return false;
+
+            if (venue.IsApproved)
+                return true;
+
+            return venue.RejectionReason is not null && venue.ResubmittedAt is null;
         }
 
         public async Task<bool> CanModifyHallAsync(int hallId, int userId)

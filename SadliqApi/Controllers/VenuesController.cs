@@ -102,6 +102,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Rədd edilmiş saray düzəldilib yenidən yoxlamağa göndərilir
+        [Authorize(Roles = "Owner,SuperAdmin,Support")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Resubmit(int id)
+        {
+            var ownerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _venueService.ResubmitAsync(id, ownerId);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         // Owner öz sarayının məlumatlarını redaktə edir
         [Authorize(Roles = "Owner,SuperAdmin,Support")]
         [HttpPut("{id}")]

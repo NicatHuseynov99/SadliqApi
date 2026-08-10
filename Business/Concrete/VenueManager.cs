@@ -45,6 +45,37 @@ namespace Business.Concrete
         // bugünkü sarayı təmsil etmir
         private const int TrustWindowDays = 180;
 
+        // Rədd edilmiş saray düzəldilib yenidən yoxlamağa göndərilir.
+        // Əvvəl belə axın yox idi: sahibkar düzəlişi edirdi, amma bunu
+        // bildirmək yolu olmurdu.
+        public async Task<IResult> ResubmitAsync(int venueId, int ownerId)
+        {
+            var venue = await _venueDal.GetAsync(v => v.Id == venueId);
+            if (venue is null)
+                return new ErrorResult("Saray tapılmadı.");
+
+            if (!await _access.IsOwnerAsync(venueId, ownerId))
+                return new ErrorResult("Bu saray sizə aid deyil.");
+
+            if (venue.IsApproved)
+                return new ErrorResult("Saray onsuz da təsdiqlidir.");
+
+            if (venue.ResubmittedAt is not null)
+                return new ErrorResult("Saray artıq yoxlama növbəsindədir.");
+
+            venue.ResubmittedAt = DateTime.UtcNow;
+
+            // Səbəb tarixçə üçün saxlanılır, amma yeni yoxlamanı bloklamır
+            await _venueDal.UpdateAsync(venue);
+
+            _audit.Set(
+                "VenueResubmitted",
+                $"«{venue.Name}» sarayını yenidən yoxlamağa göndərdi",
+                "Venue", venue.Id, venue.Id);
+
+            return new SuccessResult("Saray yenidən yoxlamağa göndərildi.");
+        }
+
         // Müştəri sorğu göndərməzdən əvvəl sarayın necə davrandığını bilməlidir.
         // Bu rəqəmlər əvvəl yalnız sarayın öz hesabatında görünürdü.
         public async Task<IDataResult<VenueTrustDto>> GetTrustAsync(int venueId)

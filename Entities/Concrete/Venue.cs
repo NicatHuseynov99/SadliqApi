@@ -31,6 +31,15 @@ namespace Entities.Concrete
         public bool IsApproved { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // Rədd səbəbi. Əvvəl yox idi: sahibkara «səbəbi öyrənmək üçün bizimlə
+        // əlaqə saxlayın» yazılırdı — nəyi düzəldəcəyini bilmirdi.
+        public string? RejectionReason { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public int? RejectedByUserId { get; set; }
+
+        // Sahibkar düzəlişi edib yenidən yoxlamağa göndərib
+        public DateTime? ResubmittedAt { get; set; }
+
         public ICollection<VenueImage> Images { get; set; } = new List<VenueImage>();
         public ICollection<Hall> Halls { get; set; } = new List<Hall>();
         public ICollection<Menu> Menus { get; set; } = new List<Menu>();

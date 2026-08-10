@@ -1277,6 +1277,18 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("VideoUrl")
                         .HasColumnType("text");
 
