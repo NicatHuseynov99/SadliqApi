@@ -40,6 +40,8 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
         public DbSet<OfferMessage> OfferMessages => Set<OfferMessage>();
         public DbSet<NotificationCampaign> NotificationCampaigns => Set<NotificationCampaign>();
         public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+        public DbSet<Dispute> Disputes => Set<Dispute>();
+        public DbSet<DisputeMessage> DisputeMessages => Set<DisputeMessage>();
 
         // Silmək fiziki deyil, işarələmədir. Ona görə bazanın öz kaskad silinməsi işə
         // düşmür — valideyn işarələnəndə uşaqları burada, bir yerdə işarələyirik.
@@ -289,6 +291,8 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<VenueOffer>().HasQueryFilter(o => !o.IsDeleted);
             b.Entity<OfferMessage>().HasQueryFilter(m => !m.IsDeleted);
             b.Entity<VenueStaff>().HasQueryFilter(s => !s.IsDeleted);
+            b.Entity<Dispute>().HasQueryFilter(d => !d.IsDeleted);
+            b.Entity<DisputeMessage>().HasQueryFilter(m => !m.IsDeleted);
 
             // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına
             // düşmür. Moderasiya paneli IgnoreQueryFilters() ilə hamısını görür.

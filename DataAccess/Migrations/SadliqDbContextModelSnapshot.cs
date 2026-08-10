@@ -168,6 +168,125 @@ namespace DataAccess.Migrations
                     b.ToTable("Cities");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.Dispute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedToId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AssignedToUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("OpenedByCustomer")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("OpenedById")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OpenedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReservationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Resolution")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ResolvedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VenueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToId");
+
+                    b.HasIndex("OpenedById");
+
+                    b.HasIndex("ReservationId");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("Disputes");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.DisputeMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisputeId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFromStaff")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsInternalNote")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("SenderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SenderUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisputeId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("DisputeMessages");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Favorite", b =>
                 {
                     b.Property<int>("Id")
@@ -1427,6 +1546,50 @@ namespace DataAccess.Migrations
                     b.ToTable("VenueStaffHalls");
                 });
 
+            modelBuilder.Entity("Entities.Concrete.Dispute", b =>
+                {
+                    b.HasOne("Entities.Concrete.User", "AssignedTo")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId");
+
+                    b.HasOne("Entities.Concrete.User", "OpenedBy")
+                        .WithMany()
+                        .HasForeignKey("OpenedById");
+
+                    b.HasOne("Entities.Concrete.Reservation", "Reservation")
+                        .WithMany()
+                        .HasForeignKey("ReservationId");
+
+                    b.HasOne("Entities.Concrete.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId");
+
+                    b.Navigation("AssignedTo");
+
+                    b.Navigation("OpenedBy");
+
+                    b.Navigation("Reservation");
+
+                    b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.DisputeMessage", b =>
+                {
+                    b.HasOne("Entities.Concrete.Dispute", "Dispute")
+                        .WithMany("Messages")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Entities.Concrete.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId");
+
+                    b.Navigation("Dispute");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Entities.Concrete.Favorite", b =>
                 {
                     b.HasOne("Entities.Concrete.User", "User")
@@ -1807,6 +1970,11 @@ namespace DataAccess.Migrations
                     b.Navigation("Hall");
 
                     b.Navigation("VenueStaff");
+                });
+
+            modelBuilder.Entity("Entities.Concrete.Dispute", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Entities.Concrete.Hall", b =>

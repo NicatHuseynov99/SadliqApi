@@ -20,6 +20,32 @@ namespace Entities.Concrete
 
     public enum VenueOfferStatus { Sent, Accepted, Declined, Withdrawn }
 
+    // Şikayət/mübahisə. Müştəri saraydan, saray müştəridən şikayət edə bilər —
+    // qərarı platforma verir və qərarın izi qalır.
+    //
+    // InReview = dəstək işi öz üzərinə götürüb
+    // Resolved = qərar verilib (nəticə mətndə)
+    // Closed = əsassız və ya şikayətçi geri götürüb
+    public enum DisputeStatus { Open, InReview, Resolved, Closed }
+
+    // Şikayətin mövzusu — dəstək növbəsini süzgəcləmək üçün
+    public enum DisputeCategory
+    {
+        // Rezervlə bağlı: ləğv, tarix, şərtlərin pozulması
+        Reservation = 0,
+
+        // Sarayın davranışı: cavabsızlıq, verilən sözdən dönmə
+        VenueBehavior = 1,
+
+        // Müştərinin davranışı: gəlməmə, təhqir
+        CustomerBehavior = 2,
+
+        // Qiymət və ödənişlə bağlı fikir ayrılığı
+        Payment = 3,
+
+        Other = 9
+    }
+
     // Bildirişin növü. «Announcement»-dan başqa hamısı sistem bildirişidir —
     // xidmətin bir hissəsi olduğu üçün söndürülə bilmir.
     public enum NotificationType
