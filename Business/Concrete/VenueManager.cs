@@ -17,6 +17,7 @@ namespace Business.Concrete
         private readonly IVenueImageDal _imageDal;
         private readonly IAuditContext _audit;
         private readonly IPlatformSettingsService _settings;
+        private readonly IReservationDal _reservationDal;
 
         public VenueManager(
             IVenueDal venueDal,
@@ -24,7 +25,8 @@ namespace Business.Concrete
             IVenueFeatureDal featureDal,
             IVenueImageDal imageDal,
             IAuditContext audit,
-            IPlatformSettingsService settings)
+            IPlatformSettingsService settings,
+            IReservationDal reservationDal)
         {
             _audit = audit;
             _settings = settings;
@@ -32,6 +34,62 @@ namespace Business.Concrete
             _access = access;
             _featureDal = featureDal;
             _imageDal = imageDal;
+            _reservationDal = reservationDal;
+        }
+
+        // Faiz göstərmək üçün minimum sorğu sayı. Bundan azdırsa rəqəm
+        // yanıltıcıdır: 1 sorğu ya 0%, ya 100% verir.
+        private const int MinRequestsForPercent = 5;
+
+        // Etibar siqnalları son bu qədər günə baxır — köhnə davranış
+        // bugünkü sarayı təmsil etmir
+        private const int TrustWindowDays = 180;
+
+        // Müştəri sorğu göndərməzdən əvvəl sarayın necə davrandığını bilməlidir.
+        // Bu rəqəmlər əvvəl yalnız sarayın öz hesabatında görünürdü.
+        public async Task<IDataResult<VenueTrustDto>> GetTrustAsync(int venueId)
+        {
+            var venue = await _venueDal.GetAsync(v => v.Id == venueId && v.IsApproved);
+            if (venue is null)
+                return new ErrorDataResult<VenueTrustDto>("Saray tapılmadı.");
+
+            var since = DateTime.UtcNow.AddDays(-TrustWindowDays);
+
+            var query = await _reservationDal.GetListAsync(
+                r => r.VenueId == venueId && r.CreatedAt >= since);
+
+            var reservations = await query.ToListAsync();
+
+            var answered = reservations
+                .Where(r => r.RespondedAt.HasValue)
+                .Select(r => (r.RespondedAt!.Value - r.CreatedAt).TotalHours)
+                .ToList();
+
+            var confirmed = reservations.Count(r => r.Status == ReservationStatus.Confirmed);
+            var expired = reservations.Count(r => r.Status == ReservationStatus.Expired);
+
+            // Təsdiqləndikdən sonra ləğv edilənlər. Müştərinin öz ləğvi
+            // sayılmır — bu göstərici sarayın etibarlılığı barədədir.
+            var cancelledByVenue = reservations.Count(r =>
+                r.Status == ReservationStatus.Cancelled
+                && r.CancelledAt.HasValue
+                && r.CancelledByUserId.HasValue
+                && r.CancelledByUserId != r.CustomerId);
+
+            var hasEnough = reservations.Count >= MinRequestsForPercent;
+
+            return new SuccessDataResult<VenueTrustDto>(new VenueTrustDto
+            {
+                VenueId = venueId,
+                AverageResponseHours = answered.Count == 0 ? null : Math.Round(answered.Average(), 1),
+                ConfirmPercent = hasEnough
+                    ? (int)Math.Round(confirmed * 100.0 / reservations.Count)
+                    : null,
+                ExpiredCount = expired,
+                CancelledAfterConfirmCount = cancelledByVenue,
+                BasedOnRequests = reservations.Count,
+                HasEnoughData = hasEnough
+            });
         }
 
         // Yalnız admin tərəfindən təsdiqlənmiş sarayları bütün detalları ilə qaytarır.

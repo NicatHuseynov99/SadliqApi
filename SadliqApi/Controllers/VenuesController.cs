@@ -72,6 +72,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Etibar siqnalları: sorğuya nə qədər tez cavab verir, neçəsini
+        // təsdiqləyir, təsdiqdən sonra neçəsini ləğv edib.
+        // Ayrıca endpoint-dir ki, saray siyahısını ağırlaşdırmasın.
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTrust(int id)
+        {
+            var result = await _venueService.GetTrustAsync(id);
+            return result.Success ? Ok(result) : NotFound(result);
+        }
+
         // İdarə edilən saraylar: sahib öz saraylarını, administrator təyin olunduqlarını görür
         [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
         [HttpGet]

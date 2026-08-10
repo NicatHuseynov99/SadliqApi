@@ -17,6 +17,10 @@ namespace Business.Abstract
         // Axtarış qutusunun təklifləri
         Task<IDataResult<List<SearchSuggestionDto>>> SuggestAsync(string? q);
         Task<IDataResult<Venue>> GetByIdAsync(int id, int? viewerUserId = null);
+
+        // Müştəriyə göstərilən etibar siqnalları: cavab müddəti, təsdiq faizi,
+        // cavabsız qalan və təsdiqdən sonra ləğv edilən sorğular
+        Task<IDataResult<VenueTrustDto>> GetTrustAsync(int venueId);
         Task<IDataResult<List<Venue>>> GetMineAsync(int ownerId);
         Task<IDataResult<Venue>> CreateAsync(CreateVenueDto dto, int ownerId);
         Task<IResult> UpdateAsync(int id, UpdateVenueDto dto, int ownerId);
