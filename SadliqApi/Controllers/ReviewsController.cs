@@ -74,6 +74,16 @@ namespace SadliqApi.Controllers
             return Ok(result);
         }
 
+        // Saray tərəfinin öz saraylarına gələn rəyləri — cavabsızlar yuxarıda.
+        // Beləliklə sahib cavab yazmaq üçün ictimai səhifəyə keçməli olmur.
+        [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]
+        [HttpGet]
+        public async Task<IActionResult> GetForOwner()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _reviewService.GetForOwnerAsync(userId));
+        }
+
         // Saray rəyə açıq cavab yazır. Bir rəyə bir cavab olur — təkrar
         // çağırış mövcud cavabı əvəz edir.
         [Authorize(Roles = "Owner,VenueAdmin,SuperAdmin,Support")]

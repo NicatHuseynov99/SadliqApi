@@ -257,6 +257,38 @@ namespace Business.Concrete
 
         private const int MaxReplyLength = 1000;
 
+        // Saray tərəfinin idarə etdiyi bütün sarayların rəyləri.
+        // Cavabsızlar yuxarıda: sahibin görməli olduğu iş elə odur.
+        public async Task<IDataResult<List<OwnerReviewDto>>> GetForOwnerAsync(int userId)
+        {
+            var venueIds = await _access.GetManagedVenueIdsAsync(userId);
+
+            if (venueIds.Count == 0)
+                return new SuccessDataResult<List<OwnerReviewDto>>(new List<OwnerReviewDto>());
+
+            var query = await _reviewDal.GetListAsync(r => venueIds.Contains(r.VenueId));
+
+            var list = await query
+                .OrderBy(r => r.OwnerReply != null)
+                .ThenByDescending(r => r.CreatedAt)
+                .Select(r => new OwnerReviewDto
+                {
+                    Id = r.Id,
+                    VenueId = r.VenueId,
+                    VenueName = r.Venue!.Name,
+                    AuthorName = r.AuthorName,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    CreatedAt = r.CreatedAt,
+                    IsVerifiedGuest = r.IsVerifiedGuest,
+                    OwnerReply = r.OwnerReply,
+                    OwnerRepliedAt = r.OwnerRepliedAt
+                })
+                .ToListAsync();
+
+            return new SuccessDataResult<List<OwnerReviewDto>>(list);
+        }
+
         // Saray rəyə açıq cavab yazır və ya mövcud cavabı dəyişir.
         // Şikayəti cavabsız qoymaq sarayın özünə ziyandır — oxuyan yalnız
         // bir tərəfin sözünü görür.
