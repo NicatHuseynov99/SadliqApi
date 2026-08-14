@@ -40,6 +40,14 @@ namespace SadliqApi.Controllers
             return result.Success ? Ok(result) : NotFound(result);
         }
 
+        // Birbaşa rezerv üzrə yazışma — təklif yaranmayan axın
+        [HttpGet("{reservationId}")]
+        public async Task<IActionResult> GetReservation(int reservationId)
+        {
+            var result = await _service.GetReservationAsync(reservationId);
+            return result.Success ? Ok(result) : NotFound(result);
+        }
+
         // Qanunsuz mesajı tərəflərdən gizlədir və ya yenidən göstərir.
         // Mesaj silinmir — admin onu görməkdə davam edir.
         [HttpPut("{messageId}")]

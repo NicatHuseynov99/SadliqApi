@@ -74,6 +74,11 @@ namespace Entities.Concrete
         public ICollection<ReservationCounterOffer> CounterOffers { get; set; }
             = new List<ReservationCounterOffer>();
 
+        // Birbaşa rezerv üzrə yazışma. Təklif söhbəti ilə eyni cədvəldə saxlanılır
+        // ki, moderasiya və adminin görünüşü hər iki növ üçün eyni yerdən işləsin.
+        public ICollection<OfferMessage> Messages { get; set; }
+            = new List<OfferMessage>();
+
         // Silinmiş sətir saytda görünmür, amma bazada qalır — geri qaytarmaq olur
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }

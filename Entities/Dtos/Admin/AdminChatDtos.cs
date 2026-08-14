@@ -16,8 +16,15 @@ namespace Entities.Dtos.Admin
     // Siyahıda bir yazışmanın xülasəsi — adminin hansını açacağını seçməsi üçün
     public class AdminChatSummaryDto
     {
-        public int OfferId { get; set; }
-        public int RequestId { get; set; }
+        // Yazışmanın kökü: «Offer» — sorğu/təklif axını, «Reservation» — sarayın
+        // səhifəsindən birbaşa edilmiş rezerv. Adminin əlində hər ikisi olmalıdır,
+        // çünki mübahisə hansı axından gəldiyinə baxmır.
+        public string ThreadKind { get; set; } = "Offer";
+
+        // Növündən asılı olaraq biri dolu olur
+        public int? OfferId { get; set; }
+        public int? RequestId { get; set; }
+        public int? ReservationId { get; set; }
 
         public int VenueId { get; set; }
         public string VenueName { get; set; } = string.Empty;
@@ -39,8 +46,11 @@ namespace Entities.Dtos.Admin
     // Yazışmanın tam görünüşü: kimlər danışır, hansı təklif üzrə, bütün mesajlar
     public class AdminChatDetailDto
     {
-        public int OfferId { get; set; }
-        public int RequestId { get; set; }
+        public string ThreadKind { get; set; } = "Offer";
+
+        public int? OfferId { get; set; }
+        public int? RequestId { get; set; }
+        public int? ReservationId { get; set; }
 
         public string VenueName { get; set; } = string.Empty;
         public string OwnerName { get; set; } = string.Empty;
@@ -49,6 +59,8 @@ namespace Entities.Dtos.Admin
         public DateTime EventDate { get; set; }
         public int GuestCount { get; set; }
         public decimal PricePerPerson { get; set; }
+
+        // Təklif lentində təklifin, rezerv lentində rezervin vəziyyəti
         public string OfferStatus { get; set; } = string.Empty;
 
         public DateTime ChatOpenedAt { get; set; }

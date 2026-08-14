@@ -230,7 +230,7 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             // Birbaşa rezervin yazışması. Rezerv silinsə söhbət də getsin —
             // təklifdə olduğu kimi.
             b.Entity<OfferMessage>()
-                .HasOne(m => m.Reservation).WithMany()
+                .HasOne(m => m.Reservation).WithMany(r => r.Messages)
                 .HasForeignKey(m => m.ReservationId)
                 .OnDelete(DeleteBehavior.Cascade);
 

@@ -13,6 +13,9 @@ namespace Business.Abstract
 
         Task<IDataResult<AdminChatDetailDto>> GetAsync(int offerId);
 
+        // Birbaşa rezervin yazışması — təklifsiz axın
+        Task<IDataResult<AdminChatDetailDto>> GetReservationAsync(int reservationId);
+
         Task<IResult> SetHiddenAsync(int messageId, SetMessageHiddenDto dto, int adminUserId);
     }
 }
