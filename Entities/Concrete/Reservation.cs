@@ -39,6 +39,15 @@ namespace Entities.Concrete
         // Saray sorğuya nə vaxt cavab verdi — cavab müddəti hesabatı üçün
         public DateTime? RespondedAt { get; set; }
 
+        // Cavabı saray tərəfindən kim verdi. Sarayda bir neçə administrator
+        // işləyə bilər: sahib rezervin kim tərəfindən təsdiqləndiyini rezervin
+        // özündə görməlidir. Audit jurnalında qalır, amma o ayrı ekrandır və
+        // hər dəfə hadisəni axtarmaq lazım gəlir.
+        //
+        // Müştəriyə göstərilmir — onun üçün qarşı tərəf saraydır, işçi deyil.
+        public int? RespondedByUserId { get; set; }
+        public User? RespondedBy { get; set; }
+
         // Ləğvin izi: təsdiqlənmiş tədbir ləğv olunanda kim, nə vaxt və niyə
         // etdiyi qeyd olunmalıdır. İzsiz ləğv həm müştəri, həm saray üçün
         // etibarsızlıq yaradır.

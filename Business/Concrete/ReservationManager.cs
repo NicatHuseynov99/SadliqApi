@@ -337,6 +337,10 @@ namespace Business.Concrete
                 .Include(r => r.Hall)
                 .Include(r => r.Menu)
                 .Include(r => r.CounterOffers)
+                // Sarayda bir neçə administrator işləyə bilər — sahib cavabı
+                // kimin verdiyini görməlidir. Müştərinin sorğusuna qəsdən
+                // qoşulmur: onun üçün qarşı tərəf saraydır, konkret işçi deyil.
+                .Include(r => r.RespondedBy)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
@@ -404,9 +408,12 @@ namespace Business.Concrete
             var dto = new UpdateReservationStatusDto { Status = status };
             reservation.Status = dto.Status;
 
-            // Cavab müddəti hesabatı üçün: sorğu nə vaxt cavablandı
+            // Cavab müddəti hesabatı üçün: sorğu nə vaxt cavablandı və kim cavablandırdı
             if (status is ReservationStatus.Confirmed or ReservationStatus.Rejected)
+            {
                 reservation.RespondedAt ??= DateTime.UtcNow;
+                reservation.RespondedByUserId ??= changedByUserId;
+            }
 
             // Ləğvin izi qalmalıdır: kim, nə vaxt, niyə
             if (status == ReservationStatus.Cancelled)

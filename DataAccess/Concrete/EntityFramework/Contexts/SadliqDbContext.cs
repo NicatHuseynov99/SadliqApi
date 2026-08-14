@@ -235,6 +235,15 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasForeignKey(r => r.SeenByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Cavabı verən işçi də eyni qayda ilə. Açıq göstərilməsi vacibdir:
+            // göstərilməsə EF ayrıca «RespondedById» sütunu yaradır və kod bir
+            // sütuna yazıb naviqasiya boş qalan digərindən oxuyur — şikayətdə
+            // məhz bu səbəbdən adlar boş görünürdü.
+            b.Entity<Reservation>()
+                .HasOne(r => r.RespondedBy).WithMany()
+                .HasForeignKey(r => r.RespondedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Zəng siyahısı «mənim oxunmamışlarım» sorğusu üzərində qurulub
             b.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
             b.Entity<Notification>().HasIndex(n => n.CreatedAt);

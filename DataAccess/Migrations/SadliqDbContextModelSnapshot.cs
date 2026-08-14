@@ -903,6 +903,9 @@ namespace DataAccess.Migrations
                     b.Property<DateTime?>("RespondedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("RespondedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ReviewInviteSentAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -925,6 +928,8 @@ namespace DataAccess.Migrations
                     b.HasIndex("HallId");
 
                     b.HasIndex("MenuId");
+
+                    b.HasIndex("RespondedByUserId");
 
                     b.HasIndex("SeenByUserId");
 
@@ -1781,6 +1786,11 @@ namespace DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Entities.Concrete.User", "RespondedBy")
+                        .WithMany()
+                        .HasForeignKey("RespondedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Entities.Concrete.User", "SeenBy")
                         .WithMany()
                         .HasForeignKey("SeenByUserId")
@@ -1797,6 +1807,8 @@ namespace DataAccess.Migrations
                     b.Navigation("Hall");
 
                     b.Navigation("Menu");
+
+                    b.Navigation("RespondedBy");
 
                     b.Navigation("SeenBy");
 
