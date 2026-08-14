@@ -176,9 +176,6 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AssignedToId")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("AssignedToUserId")
                         .HasColumnType("integer");
 
@@ -200,9 +197,6 @@ namespace DataAccess.Migrations
 
                     b.Property<bool>("OpenedByCustomer")
                         .HasColumnType("boolean");
-
-                    b.Property<int?>("OpenedById")
-                        .HasColumnType("integer");
 
                     b.Property<int>("OpenedByUserId")
                         .HasColumnType("integer");
@@ -231,9 +225,9 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedToId");
+                    b.HasIndex("AssignedToUserId");
 
-                    b.HasIndex("OpenedById");
+                    b.HasIndex("OpenedByUserId");
 
                     b.HasIndex("ReservationId");
 
@@ -272,9 +266,6 @@ namespace DataAccess.Migrations
                     b.Property<bool>("IsInternalNote")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("SenderId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("SenderUserId")
                         .HasColumnType("integer");
 
@@ -282,7 +273,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("DisputeId");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("SenderUserId");
 
                     b.ToTable("DisputeMessages");
                 });
@@ -1571,11 +1562,14 @@ namespace DataAccess.Migrations
                 {
                     b.HasOne("Entities.Concrete.User", "AssignedTo")
                         .WithMany()
-                        .HasForeignKey("AssignedToId");
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Entities.Concrete.User", "OpenedBy")
                         .WithMany()
-                        .HasForeignKey("OpenedById");
+                        .HasForeignKey("OpenedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("Entities.Concrete.Reservation", "Reservation")
                         .WithMany()
@@ -1604,7 +1598,9 @@ namespace DataAccess.Migrations
 
                     b.HasOne("Entities.Concrete.User", "Sender")
                         .WithMany()
-                        .HasForeignKey("SenderId");
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Dispute");
 

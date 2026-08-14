@@ -294,6 +294,25 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
             b.Entity<Dispute>().HasQueryFilter(d => !d.IsDeleted);
             b.Entity<DisputeMessage>().HasQueryFilter(m => !m.IsDeleted);
 
+            // Bu üç əlaqə açıq göstərilməlidir. Göstərilməyəndə EF adı "UserId"
+            // ilə bitən sahəni açar saymır və özündən ayrıca "OpenedById" tipli
+            // sütun yaradır: kod bir sütuna yazır, naviqasiya boş qalan digərindən
+            // oxuyur. Nəticədə şikayətdə ad sahələri boş görünürdü.
+            b.Entity<Dispute>()
+                .HasOne(d => d.OpenedBy).WithMany()
+                .HasForeignKey(d => d.OpenedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.Entity<Dispute>()
+                .HasOne(d => d.AssignedTo).WithMany()
+                .HasForeignKey(d => d.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.Entity<DisputeMessage>()
+                .HasOne(m => m.Sender).WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Gizlədilmiş rəy heç bir adi sorğuda görünmür və reytinq ortalamasına
             // düşmür. Moderasiya paneli IgnoreQueryFilters() ilə hamısını görür.
             b.Entity<Review>().HasQueryFilter(r => !r.IsHidden && !r.IsDeleted);

@@ -364,3 +364,5 @@ FodyWeavers.xsd
 # Yüklənən fayllar repoya düşməsin, qovluğun özü qalsın
 SadliqApi/wwwroot/uploads/*
 !SadliqApi/wwwroot/uploads/.gitkeep
+
+.idea/
