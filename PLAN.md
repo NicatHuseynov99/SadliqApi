@@ -1,168 +1,205 @@
-# Şadlıq Sarayları — iş planı
+# Şadlıq Sarayları — rol əlaqələri üzrə iş planı
 
-Bu sənəd 2026-08-14-də mövcud kodun ölçülməsi ilə hazırlanıb. Rəqəmlər
-təxmin deyil: fayl sətirləri `wc -l`, cədvəl sətirləri bazadan, endpoint
-davranışı isə real sorğu ilə yoxlanılıb.
+Platformada beş tərəf var: **müştəri**, **saray sahibi**, **saray
+administratoru**, **dəstək** və **admin**. Kodun çətin yeri ayrı-ayrılıqda
+bunların hər biri deyil — aralarındakı əlaqədir: kim kimi görür, kim kimə
+yaza bilir, iş görüləndə kimin xəbəri olur və sonradan kimin etdiyi bilinir.
 
-Ardıcıllıq təsadüfi deyil. Hər mərhələ özündən sonrakının üstündə dayandığı
-üçün belə düzülüb: sınanmamış kodun üstünə yeni kod qoymaq, gizli qüsurları
-daha dərinə basdırmaqdır.
+Bu sənəd 2026-08-14-də kodun oxunması ilə hazırlanıb. Aşağıdakı boşluqların
+hamısı fayl və sətir göstərilərək yoxlanılıb, təxmin deyil.
 
 ---
 
-## Vəziyyət
+## Hazırkı mənzərə
 
-**Möhkəm olan yerlər — toxunmağa ehtiyac yoxdur**
+**Kanallar**
 
-| Sahə | Vəziyyət |
-|---|---|
-| DB indeksləri | 32 `HasIndex`, isti sütunlar örtülüb |
-| Səlahiyyət məntiqi | bir yerdə — `VenueAccessService` |
-| Audit izi | hər yazma əməliyyatında |
-| Yumşaq silmə | qlobal filtrlər + kaskad `SaveChangesAsync`-də |
-| E-poçt | SMTP qurulub |
-
-**Zəif yerlər — ölçülmüş**
-
-| # | Problem | Rəqəm |
+| Kanal | Kimlər | Vəziyyət |
 |---|---|---|
-| 1 | JWT imza açarı git-dədir | `appsettings.json` izlənir |
-| 2 | Yazdıqlarımız real dataya dəyməyib | `Disputes` 0, `OfferMessages` 0 sətir idi |
-| 3 | Avtomatik test yoxdur | 0 test faylı, hər iki repo |
-| 4 | SEO praktiki olaraq yoxdur | `index.html`-də təsvir, OG etiketi, səhifə başlığı yox |
-| 5 | Şəkil performansı | 31 `<img>`, cəmi 2-də `lazy`, 2-də `aspect-ratio` |
-| 6 | Nəhəng fayllar | 7 fayl 1000+ sətir, ən böyüyü `Home.vue` 1813 |
-| 7 | Real vaxt yoxdur | söhbət 15 san, bildiriş 60 san sorğu ilə |
-| 8 | Ödəniş inteqrasiyası yoxdur | yalnız `DisputeCategory.Payment` enum-u |
+| Təklif yazışması (`OfferMessage`) | müştəri ↔ saray | yalnız təklif üzərindən |
+| Şikayət (`Dispute`) | tərəf ↔ dəstək | işləyir |
+| Bildiriş (`Notification`) | platforma → istifadəçi | tək istiqamətli |
+| Admin yazışma görünüşü | admin → yazışmalar | yalnız oxuma |
+
+**Səlahiyyət**
+
+`VenueAccessService` bütün qərarları bir yerdə verir — bu düzgün qurulub.
+Sahib hər şeyi edir; administrator yalnız təyin olunduğu sarayda və yalnız
+verilmiş bayraqlar çərçivəsində (`CanConfirmReservations`, `CanEditCalendar`,
+`CanSendOffers`); dəstək və admin isə hər sarayda sahib sayılır.
+
+Sonuncu cümlə problemdir və plan ondan başlayır.
 
 ---
 
-## Mərhələ 0 — Təhlükəsizlik (dərhal)
+## 1. Dəstək rolunun səlahiyyəti həddindən artıqdır
 
-**JWT imza açarını repodan çıxar.** İndi `appsettings.json` git-də izlənir və
-içindəki `SecurityKey` oradadır. Bu açarı bilən adam istənilən istifadəçi
-kimi, istənilən rolla — SuperAdmin daxil — token imzalaya bilər. Nə parol,
-nə giriş lazımdır.
+**Boşluq.** `VenueAccessManager.HasPlatformWideAccessAsync` dəstəyi admin ilə
+eyni sayır. Bu funksiya `IsOwnerAsync`-ə qidalandığı üçün dəstək işçisi
+**hər sarayda sahib kimi** davranır: sarayın məlumatını dəyişə, rezervi
+təsdiqləyə, təqvimi redaktə edə, administratorun səlahiyyətlərini dəyişə
+bilər.
 
-- Açarı `appsettings.json`-dan çıxar, `dotnet user-secrets` və mühit
-  dəyişəninə keçir
-- Yeni, təsadüfi açar yarat — köhnəsi artıq etibarsızdır
-- `appsettings.json`-u izlənməkdən çıxar, nümunə fayl qoy
-- SMTP parolu hazırda boşdur, amma eyni yolla qurulsun ki, sonra ora
-  yazılmasın
+Dəstəyin işi vasitəçilikdir — yazışmanı oxumaq, mübahisəni həll etmək,
+tərəfləri barışdırmaq. Sarayı idarə etmək deyil. Hazırkı qurğuda dəstək
+işçisinin səhvən (və ya qəsdən) etdiyi dəyişikliyi sahib öz panelində
+görür, amma qarşısını alan heç nə yoxdur.
 
-Bu, digər hər şeydən əvvəl gəlir, çünki qalan işlərin heç birinin dəyəri
-yoxdur, əgər hər kəs özünü admin elan edə bilirsə.
+**Təklif.** «Görmək» ilə «etmək» ayrılsın:
 
----
+- `HasPlatformWideReadAsync` — dəstək + admin. Hər şeyi görür.
+- `HasPlatformWideWriteAsync` — yalnız admin. Kənardan müdaxilə edə bilir.
+- `IsOwnerAsync` yalnız birincidən qidalanmasın.
 
-## Mərhələ 1 — Yazdıqlarımızı işlət və qüsurları çıxar
+Dəstəyə lazım olan müdaxilə (məsələn mübahisədən sonra rezervin ləğvi) artıq
+var və düzgün yerdədir: şikayət işi üzərindən, yazılı qərarla, iz qalaraq.
+Yan qapıya ehtiyac yoxdur.
 
-Son həftələrdə 23 commit getdi: şikayət sistemi, iki tərəfli danışıq, admin
-yazışma görünüşü, ştat səlahiyyətləri, rəyə cavab. Bunların yoxlanışı yalnız
-«build təmizdir, endpoint 401 qaytarır» səviyyəsində idi.
-
-Bu yoxlanışın nəyi buraxdığı artıq göründü. İlk dəfə real şikayət açan kimi
-çıxdı ki, `Dispute.OpenedBy` əlaqəsi qurulmayıb: EF ayrıca kölgə sütun
-yaratmışdı, kod bir sütuna yazır, naviqasiya boş qalan digərindən oxuyurdu.
-Dəstək növbəsində heç kimin adı görünməyəcəkdi. Build təmiz idi. Düzəldildi
-(`d85c193`), amma dərs qalır: **işlədilməyən kod sınanmış sayılmır.**
-
-Sıra ilə uçdan-uca keçiriləcək axınlar:
-
-1. Şikayət: aç → yazış → dəstək təyin et → daxili qeyd → qərarla bağla
-2. İki tərəfli danışıq: təklif → əks təklif → müştəri əks təklifi → qəbul
-3. Status qoruması: qadağan olunmuş keçidlər həqiqətən rədd olunurmu
-4. Ləğv səbəbi: təsdiqlənmiş rezerv ləğv olunanda səbəb məcburidirmi
-5. Admin yazışma görünüşü: oxumaq oxunma vəziyyətinə toxunmurmu
-6. Mesajın gizlədilməsi: tərəflər görmür, iz qalır
-7. Ştat səlahiyyətləri: bayraq söndürüləndə əməliyyat həqiqətən bağlanırmı
-8. Sarayın rədd edilməsi → düzəliş → yenidən təqdim
-9. Rəyə cavab: yaz, dəyiş, sil
-
-**Maneə:** `Auth/Register` yalnız `Customer` və `Owner` rollarını açır.
-1, 5, 6, 8 və 3-ün admin hissəsi SuperAdmin/Support tələb edir. Test hesabı
-yaradıldı (`test.musteri@`, `test.sahib@`, parol `Sadliq123!`), amma admin
-rolunu kənardan vermək olmur. Bu beş bənd üçün ya sənin hesabınla birlikdə
-keçmək, ya da parolu almaq lazımdır.
+**Niyə birincidir.** Qalan bəndlərin hamısı rolların bir-birindən nə ilə
+fərqləndiyi üzərində qurulub. Fərq indi kodda tam deyil.
 
 ---
 
-## Mərhələ 2 — Qüsurların bağlanması
+## 2. Administrator işi görür, xəbəri isə sahibə gedir
 
-Mərhələ 1-də çıxanlar düzəldilir. Nə çıxacağını indidən bilmirik —
-planlaşdırmaq da yanlış olardı. Amma bir şikayət axınında biri çıxdısa,
-digər səkkizində də çıxacağını gözləmək məntiqlidir.
+**Boşluq.** `ReservationManager` saray tərəfinə gedən **bütün** bildirişləri
+`venue.OwnerId`-ə göndərir (`NotifyOwnerAsync`, `NotifyOwnerOfCancellationAsync`
+və digərləri). Administratora heç nə getmir.
 
-Hər düzəlişdən sonra ayrıca commit, mesajda kök səbəb yazılır.
+Halbuki administrator elə rezervi təsdiqləmək üçün təyin olunur —
+`CanConfirmReservations` bayrağını ona ötən həftə biz özümüz əlavə etdik.
+Nəticə: səlahiyyəti olan adam yeni sorğudan xəbər tutmur, xəbər tutan sahib
+isə işi ona həvalə edib.
 
----
+**Təklif.** Bildiriş sahibə **və** həmin sarayda uyğun səlahiyyəti olan aktiv
+administratorlara getsin. Səlahiyyət bayrağı süzgəc rolunu oynasın: təqvim
+bildirişi `CanEditCalendar` olanlara, rezerv bildirişi
+`CanConfirmReservations` olanlara. Bayraq söndürülübsə, o adam artıq həmin
+axının içində deyil — nə edə bilir, nə də narahat olunur.
 
-## Mərhələ 3 — Gözlə görünən keyfiyyət
-
-Burada istifadəçinin dərhal hiss etdiyi şeylər var, hər biri ucuzdur.
-
-**Şəkil davranışı (#5).** 31 şəkildən 29-u `aspect-ratio` olmadan yüklənir —
-səhifə açılanda məzmun sıçrayır. `loading="lazy"` isə demək olar yoxdur, ilk
-açılışda hamısı birdən çəkilir. Hər ikisi kiçik dəyişiklikdir, təsiri isə
-saray siyahısı kimi şəkilli səhifələrdə dərhal görünür.
-
-**SEO (#4).** Bu, texniki yox, kommersiya boşluğudur. Saray axtaran adam
-Google-a yazır. Hazırda `index.html`-də nə təsvir, nə OG etiketi var, hər
-səhifənin başlığı eynidir — paylaşılan link boş görünür. Ən azı: səhifə üzrə
-başlıq və təsvir, sarayın səhifəsi üçün OG şəkli, `sitemap.xml`.
-
-Vue SPA olduğu üçün tam həll ya server tərəfdə render, ya da əvvəlcədən
-generasiyadır — bu, ayrıca və böyük qərardır. Ona görə əvvəlcə ucuz hissəni
-edirik, tam həlli mobil işindən sonraya saxlayırıq.
+Sahib hər halda hamısını alır: sarayın cavabdehi odur.
 
 ---
 
-## Mərhələ 4 — Qorunma torunu
+## 3. Rezervdə «kim cavab verdi» yazılmır
 
-Test yoxdur (#3). Hər dəyişiklik əl ilə yoxlanır, yoxlanmayanda isə Mərhələ
-1-dəki kimi qüsur bir ay gizli qalır.
+**Boşluq.** `Reservation` entity-sində `CancelledByUserId` var (ötən həftə
+əlavə etdik), amma **təsdiq və rədd üçün belə bir sahə yoxdur**. `SeenByUserId`
+yalnız kimin baxdığını saxlayır.
 
-Hər şeyi əhatə etmək lazım deyil və faydası da olmaz. Yalnız səhv olanda
-bahalı olan yerlər:
+Yəni sarayda üç administrator varsa, sahib rezervin kim tərəfindən
+təsdiqləndiyini rezervin özündə görə bilmir. Audit jurnalında qalır, amma o,
+ayrı ekrandır və hadisə ilə qaydını tapmaq lazımdır.
 
-- `ReservationStatusRules` — saf funksiyadır, sınamaq asandır, səhvi isə
-  rezervin yanlış vəziyyətə düşməsi deməkdir
-- `VenueAccessService` — kimin nəyi görüb dəyişə bildiyi
-- `DisputeManager.CanAccessAsync` — daxili qeydin tərəflərə sızmaması
+**Təklif.** `RespondedByUserId` sahəsi əlavə olunsun və `ApplyStatusAsync`
+onu doldursun — ləğvdə etdiyimiz kimi. Sahibin panelində rezervin yanında
+«Rəşad təsdiqlədi, 12:40» görünsün.
 
-Üçü də təmiz məntiqdir, bazasız sınanır.
-
----
-
-## Mərhələ 5 — Faylların bölünməsi
-
-7 fayl 1000 sətirdən böyükdür (#6). Bu, indi ağrı vermir, amma hər yeni
-dəyişikliyi bir az da yavaşladır.
-
-Bunu **qəsdən sona qoyuram.** Böyük faylı bölmək davranışı dəyişmir, riski
-isə real: sınanmamış kodu bölsək, sonra çıxan qüsurun bölünmədən, yoxsa
-əvvəlki koddan gəldiyini ayırd edə bilməyəcəyik. Mərhələ 1 və 4 bitəndən
-sonra bu iş həm təhlükəsiz, həm də sürətli olur.
-
-Ardıcıllıq: `Home.vue` (1813) → `VenuesView` (1492) → `VenueDetail` (1267).
+Müştəriyə bu ad göstərilmir: onun üçün qarşı tərəf saraydır, konkret işçi
+deyil.
 
 ---
 
-## Sonraya — qərar tələb edən böyük mövzular
+## 4. Birbaşa rezervin yazışma kanalı yoxdur
 
-Bunlar plana daxil deyil, çünki hər biri sənin qərarını gözləyir:
+**Boşluq.** `OfferMessage` yalnız `OfferId`-ə bağlıdır. Yazışma sorğu →
+təklif axını ilə gələn rezervlərdə açılır.
 
-- **Beh/ödəniş (#8).** Ödəniş inteqrasiyası ümumiyyətlə yoxdur. Əvvəlki
-  danışıqda bunu qəsdən kənara qoymuşduq. Qərar verilməyincə plana düşmür.
-- **Real vaxt (#7).** Söhbət 15 saniyəlik sorğu ilə işləyir. İstifadəçi azdır
-  deyə hələ problem deyil; SignalR-a keçmək artıq indi yox, yük artanda.
-- **Mobil (iOS/Android).** Razılaşdığımız kimi web bitəndən sonra.
+Müştəri sarayın səhifəsindən birbaşa rezerv edibsə, təklif yoxdur — deməli
+yazışma da yoxdur. Rezerv təsdiqlənib, tarix tutulub, amma müştəri «zala
+neçədə girə bilərik» sualını platformada verə bilmir. Söhbət telefona keçir,
+mübahisə olanda isə adminin əlində heç nə qalmır — halbuki `OfferMessage`-in
+öz şərhində yazılan məqsəd elə budur.
+
+**Təklif.** Yazışma rezervə də bağlana bilsin: `ReservationId` sahəsi əlavə
+olunsun, ikisindən biri dolu olsun. Mövcud təklif yazışmaları toxunulmadan
+qalır.
 
 ---
 
-## Nə ilə başlayırıq
+## 5. Saray platformaya sual verə bilmir
 
-Mərhələ 0 → Mərhələ 1. Yəni: əvvəlcə JWT açarı repodan çıxır, sonra
-yazdıqlarımızı bir-bir işlədib qüsurları çıxarırıq, hər düzəliş ayrıca
-commit ilə.
+**Boşluq.** Sahibin platforma ilə danışmaq üçün yeganə yolu `Dispute`-dur,
+o isə şikayət kimi qurulub: kateqoriyalar «sarayın davranışı», «müştərinin
+davranışı», qarşı tərəf anlayışı var.
+
+Sahibin sualı isə çox vaxt şikayət deyil: «sarayım niyə rədd edildi»,
+«administratoru necə əlavə edim», «bu müştəri şübhəlidir, baxın». Bunun üçün
+kanal yoxdur — ya şikayət açır (yanlış görünür), ya da heç nə etmir.
+
+**Təklif.** `DisputeCategory`-yə qarşı tərəfi olmayan **müraciət** növü
+əlavə olunsun. Eyni iş axını, eyni dəstək növbəsi, eyni yazışma — sadəcə
+qarşı tərəf yoxdur və dəstək onu şikayət kimi saymır. Yeni cədvəl və yeni
+ekran lazım deyil.
+
+---
+
+## 6. Dəstək növbəsində «kimi gözləyirik» görünmür
+
+**Boşluq.** `DisputeStatus` dörd haldan ibarətdir: `Open`, `InReview`,
+`Resolved`, `Closed`. Bunlar işin dəstək tərəfindəki vəziyyətini göstərir.
+
+Görünməyən isə budur: iş **kimi gözləyir**. Dəstək müştəridən sənəd
+istəyibsə və üç gündür cavab yoxdursa, iş hələ də `InReview`-dur — növbədə
+dəstəyin işi kimi görünür, halbuki top qarşı tərəfdədir.
+
+**Təklif.** «Cavab gözlənilir» əlaməti əlavə olunsun: kimdən gözlənilir və
+nə vaxtdan. Növbədə süzgəc olsun. Bu, statusu əvəz etmir, üstünə gəlir.
+
+---
+
+## 7. Adminin istifadəçi ilə birbaşa əlaqəsi yoxdur
+
+**Boşluq.** Admin yazışmaları oxuyur (`AdminChatsController`, yalnız oxuma)
+və bildiriş göndərə bilir (`NotificationCampaigns`) — amma bildiriş tək
+istiqamətlidir, istifadəçi ona cavab yaza bilmir.
+
+Yəni admin yazışmada problem görürsə, tərəflə danışmaq üçün ya şikayət
+açılmasını gözləməli, ya da platformadan kənara çıxmalıdır.
+
+**Təklif.** Admin mövcud yazışmadan birbaşa iş aça bilsin — düymə yazışma
+ekranında olsun, iş həmin yazışmaya bağlansın. Yeni kanal qurmuruq: 5-ci
+bənddəki müraciət növü burada da işləyir, sadəcə açan tərəf admindir.
+
+---
+
+## Ardıcıllıq
+
+| Sıra | İş | Səbəb |
+|---|---|---|
+| 1 | Dəstəyin səlahiyyətinin bölünməsi | rolların fərqi kodda tam deyil, qalan hər şey bunun üstündədir |
+| 2 | Bildirişlərin administratora yönlənməsi | səlahiyyət verdik, xəbəri vermədik — yarımçıq iş |
+| 3 | `RespondedByUserId` | kiçik dəyişiklik, sahibə cavabdehlik görünüşü verir |
+| 4 | Rezervə bağlı yazışma | müştərinin bu gün üzləşdiyi boşluq |
+| 5 | Müraciət növü | sahibin platforma ilə əlaqəsini açır |
+| 6 | «Cavab gözlənilir» | dəstək növbəsi böyüyəndə lazım olur |
+| 7 | Yazışmadan iş açmaq | 5-ci bənd bitəndən sonra kiçik əlavədir |
+
+Hər bənddən sonra ayrıca commit və push. Hər bənd real sorğu ilə işlədilir —
+«build təmizdir» yoxlanış sayılmır.
+
+---
+
+## Bunu niyə vurğulayıram
+
+Ötən həftə şikayət sistemini yazdıq, build təmiz idi, endpoint düzgün 401
+qaytarırdı. Bu gün ilk dəfə real şikayət açan kimi çıxdı ki, `Dispute.OpenedBy`
+əlaqəsi qurulmayıb: EF ayrıca kölgə sütun yaratmışdı, kod bir sütuna yazır,
+naviqasiya isə həmişə boş qalan digərindən oxuyurdu. Dəstək növbəsində heç
+kimin adı görünməyəcəkdi. Düzəldildi (`d85c193`).
+
+Ona görə yuxarıdakı yeddi bəndin hər biri yazıldıqdan sonra əl ilə
+işlədiləcək, nəticə isə commit mesajında göstəriləcək.
+
+---
+
+## Plandan kənar
+
+- **Mobil (iOS/Android)** — razılaşdığımız kimi web bitəndən sonra
+- **Real vaxt (SignalR)** — söhbət hazırda 15 saniyəlik sorğu ilə işləyir;
+  istifadəçi sayı azdır, yük artanda qayıdırıq
+- **Fayl bölünməsi** (`Home.vue` 1813 sətir və digər 6 fayl) — davranışı
+  dəyişmir, yuxarıdakı işlər bitəndən sonra daha təhlükəsizdir
+- **JWT imza açarı `appsettings.json`-dadır və git-də izlənir** — bu, rol
+  əlaqələri mövzusundan kənardır, amma açarı bilən özünə admin token-i
+  imzalaya bilər. Ayrıca qərar tələb edir.
