@@ -122,14 +122,10 @@ namespace Business.Concrete
         // Bayraq həm də süzgəcdir: təqvim bildirişi yalnız təqvimi redaktə edənə,
         // rezerv bildirişi yalnız təsdiqləyənə gedir. Bayraq söndürülübsə, o adam
         // həmin axının içində deyil — nə edə bilir, nə də narahat olunur.
-        public async Task<List<int>> GetNotifyUserIdsAsync(int venueId, StaffPermission permission)
+        public async Task<List<int>> GetNotifyUserIdsAsync(int venueId, int ownerId, StaffPermission permission)
         {
-            var venue = await _venueDal.GetAsync(v => v.Id == venueId);
-            if (venue is null)
-                return new List<int>();
-
             // Sahib hər halda alır: sarayın cavabdehi odur
-            var ids = new List<int> { venue.OwnerId };
+            var ids = new List<int> { ownerId };
 
             var staffQuery = await _staffDal.GetListAsync(
                 s => s.VenueId == venueId && s.IsActive);

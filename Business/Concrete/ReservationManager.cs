@@ -170,10 +170,10 @@ namespace Business.Concrete
         // Saray tərəfinə bildiriş. Əvvəl hamısı yalnız sahibə gedirdi: rezervi
         // təsdiqləmək üçün təyin olunmuş administrator sorğunun gəldiyini
         // bilmirdi — səlahiyyəti vardı, xəbəri yox idi.
-        private async Task NotifyVenueSideAsync(int venueId, NotificationMessage message)
+        private async Task NotifyVenueSideAsync(Venue venue, NotificationMessage message)
         {
             var recipients = await _access.GetNotifyUserIdsAsync(
-                venueId, StaffPermission.ConfirmReservations);
+                venue.Id, venue.OwnerId, StaffPermission.ConfirmReservations);
 
             await _notifications.NotifyManyAsync(
                 recipients, message, NotificationChannels.InApp);
@@ -193,7 +193,7 @@ namespace Business.Concrete
                 "Sorğunu idarəetmə panelindən təsdiqləyə və ya rədd edə bilərsiniz.";
 
             await NotifyVenueSideAsync(
-                venue.Id,
+                venue,
                 new NotificationMessage(
                     NotificationType.ReservationCreated,
                     $"Yeni rezerv sorğusu — {venue.Name}",
@@ -210,7 +210,7 @@ namespace Business.Concrete
             var hall = await _hallDal.GetAsync(h => h.Id == reservation.HallId);
 
             await NotifyVenueSideAsync(
-                venue.Id,
+                venue,
                 new NotificationMessage(
                     NotificationType.ReservationCancelled,
                     $"Rezerv ləğv edildi — {venue.Name}",
@@ -739,7 +739,7 @@ namespace Business.Concrete
 
             if (venue is not null)
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Əks-təklif qəbul edildi",
@@ -789,7 +789,7 @@ namespace Business.Concrete
 
             if (venue is not null)
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Əks-təklif qəbul edilmədi",
@@ -895,7 +895,7 @@ namespace Business.Concrete
 
             if (venue is not null)
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Müştəri yeni şərt təklif etdi",

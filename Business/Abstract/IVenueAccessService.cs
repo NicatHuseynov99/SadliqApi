@@ -38,6 +38,9 @@ namespace Business.Abstract
         // Səlahiyyət yoxlamasından fərqli olaraq bura SuperAdmin və dəstəyi
         // qatmır — onlar hər sarayda sahib sayılır, qatsaq platformadakı bütün
         // sarayların hər rezervi onların bildiriş lentinə düşərdi.
-        Task<List<int>> GetNotifyUserIdsAsync(int venueId, StaffPermission permission);
+        // Sahibin Id-si parametr kimi ötürülür: çağıran onsuz da sarayı əlində
+        // tutur, üstəlik sarayı burada yenidən yükləsək yumşaq silinmiş saray
+        // süzgəcə düşər və bildiriş tamamilə itərdi.
+        Task<List<int>> GetNotifyUserIdsAsync(int venueId, int ownerId, StaffPermission permission);
     }
 }

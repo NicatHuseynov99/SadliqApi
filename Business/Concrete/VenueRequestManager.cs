@@ -440,7 +440,7 @@ namespace Business.Concrete
 
             if (venue is not null)
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Təklifiniz qəbul edildi",
@@ -498,7 +498,7 @@ namespace Business.Concrete
                 if (venue is null) continue;
 
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         "Sorğu bağlandı",
@@ -635,10 +635,10 @@ namespace Business.Concrete
         // Saray tərəfinə bildiriş: sahib + təklif göndərməyə səlahiyyəti olan
         // administratorlar. Əvvəl yalnız sahibə gedirdi — təklifi administrator
         // göndərsə də, müştərinin cavabından yalnız sahibin xəbəri olurdu.
-        private async Task NotifyVenueSideAsync(int venueId, NotificationMessage message)
+        private async Task NotifyVenueSideAsync(Venue venue, NotificationMessage message)
         {
             var recipients = await _access.GetNotifyUserIdsAsync(
-                venueId, StaffPermission.SendOffers);
+                venue.Id, venue.OwnerId, StaffPermission.SendOffers);
 
             await _notifications.NotifyManyAsync(
                 recipients, message, NotificationChannels.InApp);
@@ -789,7 +789,7 @@ namespace Business.Concrete
 
             if (venue is not null)
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         "Müştəri təklifinizi təsdiqlədi",
@@ -876,7 +876,7 @@ namespace Business.Concrete
             if (isCustomer && venue is not null)
             {
                 await NotifyVenueSideAsync(
-                    venue.Id,
+                    venue,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         $"Yeni mesaj — {sender?.FullName ?? "müştəri"}",
