@@ -167,6 +167,18 @@ namespace Business.Concrete
             return new SuccessDataResult<Reservation>(reservation, "Rezerv sorğusu göndərildi.");
         }
 
+        // Saray tərəfinə bildiriş. Əvvəl hamısı yalnız sahibə gedirdi: rezervi
+        // təsdiqləmək üçün təyin olunmuş administrator sorğunun gəldiyini
+        // bilmirdi — səlahiyyəti vardı, xəbəri yox idi.
+        private async Task NotifyVenueSideAsync(int venueId, NotificationMessage message)
+        {
+            var recipients = await _access.GetNotifyUserIdsAsync(
+                venueId, StaffPermission.ConfirmReservations);
+
+            await _notifications.NotifyManyAsync(
+                recipients, message, NotificationChannels.InApp);
+        }
+
         // Sahibə yeni sorğu barədə bildiriş. Kanalları bildiriş servisi seçir —
         // burada yalnız mətn qurulur.
         private async Task NotifyOwnerAsync(Venue venue, Hall hall, Menu menu, Reservation reservation)
@@ -180,8 +192,8 @@ namespace Business.Concrete
                 $"Əlaqə: {reservation.ContactPhone}\n\n" +
                 "Sorğunu idarəetmə panelindən təsdiqləyə və ya rədd edə bilərsiniz.";
 
-            await _notifications.NotifyAsync(
-                venue.OwnerId,
+            await NotifyVenueSideAsync(
+                venue.Id,
                 new NotificationMessage(
                     NotificationType.ReservationCreated,
                     $"Yeni rezerv sorğusu — {venue.Name}",
@@ -197,8 +209,8 @@ namespace Business.Concrete
 
             var hall = await _hallDal.GetAsync(h => h.Id == reservation.HallId);
 
-            await _notifications.NotifyAsync(
-                venue.OwnerId,
+            await NotifyVenueSideAsync(
+                venue.Id,
                 new NotificationMessage(
                     NotificationType.ReservationCancelled,
                     $"Rezerv ləğv edildi — {venue.Name}",
@@ -719,8 +731,8 @@ namespace Business.Concrete
             var customer = await _userDal.GetAsync(u => u.Id == reservation.CustomerId);
 
             if (venue is not null)
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Əks-təklif qəbul edildi",
@@ -769,8 +781,8 @@ namespace Business.Concrete
             var venue = await _venueDal.GetAsync(v => v.Id == reservation.VenueId);
 
             if (venue is not null)
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Əks-təklif qəbul edilmədi",
@@ -875,8 +887,8 @@ namespace Business.Concrete
             var summary = await DescribeOfferAsync(reservation, offer);
 
             if (venue is not null)
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Müştəri yeni şərt təklif etdi",

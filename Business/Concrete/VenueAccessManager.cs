@@ -115,6 +115,44 @@ namespace Business.Concrete
             };
         }
 
+        // Bildiriş kimə getməlidir. Səlahiyyət verdiyimiz adam xəbəri də almalıdır:
+        // administrator rezervi təsdiqləmək üçün təyin olunur, amma sorğunun
+        // gəldiyini bilmirsə səlahiyyətin faydası yoxdur.
+        //
+        // Bayraq həm də süzgəcdir: təqvim bildirişi yalnız təqvimi redaktə edənə,
+        // rezerv bildirişi yalnız təsdiqləyənə gedir. Bayraq söndürülübsə, o adam
+        // həmin axının içində deyil — nə edə bilir, nə də narahat olunur.
+        public async Task<List<int>> GetNotifyUserIdsAsync(int venueId, StaffPermission permission)
+        {
+            var venue = await _venueDal.GetAsync(v => v.Id == venueId);
+            if (venue is null)
+                return new List<int>();
+
+            // Sahib hər halda alır: sarayın cavabdehi odur
+            var ids = new List<int> { venue.OwnerId };
+
+            var staffQuery = await _staffDal.GetListAsync(
+                s => s.VenueId == venueId && s.IsActive);
+
+            var staff = await staffQuery.ToListAsync();
+
+            foreach (var member in staff)
+            {
+                var allowed = permission switch
+                {
+                    StaffPermission.ConfirmReservations => member.CanConfirmReservations,
+                    StaffPermission.EditCalendar => member.CanEditCalendar,
+                    StaffPermission.SendOffers => member.CanSendOffers,
+                    _ => false
+                };
+
+                if (allowed)
+                    ids.Add(member.UserId);
+            }
+
+            return ids.Distinct().ToList();
+        }
+
         public async Task<List<int>> GetManagedVenueIdsAsync(int userId)
         {
             // SuperAdmin və dəstək admini bütün sarayları görür

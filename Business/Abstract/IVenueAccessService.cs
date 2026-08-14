@@ -31,5 +31,13 @@ namespace Business.Abstract
 
         // Administratorun icazəli zalları. null qayıdarsa məhdudiyyət yoxdur (sahib/dəstək)
         Task<List<int>?> GetAllowedHallIdsAsync(int userId);
+
+        // Sarayda baş verən hadisədən kimin xəbəri olmalıdır: sahib və həmin
+        // işi görməyə səlahiyyəti olan aktiv administratorlar.
+        //
+        // Səlahiyyət yoxlamasından fərqli olaraq bura SuperAdmin və dəstəyi
+        // qatmır — onlar hər sarayda sahib sayılır, qatsaq platformadakı bütün
+        // sarayların hər rezervi onların bildiriş lentinə düşərdi.
+        Task<List<int>> GetNotifyUserIdsAsync(int venueId, StaffPermission permission);
     }
 }

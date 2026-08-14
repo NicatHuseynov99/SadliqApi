@@ -439,8 +439,8 @@ namespace Business.Concrete
             var venue = await _venueDal.GetAsync(v => v.Id == offer.VenueId);
 
             if (venue is not null)
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.ReservationStatusChanged,
                         "Təklifiniz qəbul edildi",
@@ -497,8 +497,8 @@ namespace Business.Concrete
                 var venue = await _venueDal.GetAsync(v => v.Id == tracked.VenueId);
                 if (venue is null) continue;
 
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         "Sorğu bağlandı",
@@ -593,13 +593,25 @@ namespace Business.Concrete
                 .Include(v => v.Halls)
                 .ToListAsync();
 
-            var ownerIds = venues
-                .Where(v => Matches(v, request))
+            var matching = venues.Where(v => Matches(v, request)).ToList();
+            if (matching.Count == 0) return;
+
+            // Təklif göndərməyə səlahiyyəti olan administratorlar da xəbər tutmalıdır —
+            // sorğu 7 gün açıqdır, sahibin panelə girməsini gözləmək fürsət itkisidir.
+            // Saray çox ola bilər, ona görə hər saray üçün ayrıca sorğu yox, hamısı
+            // üçün bir sorğu vurulur.
+            var matchingIds = matching.Select(v => v.Id).ToList();
+
+            var staffIds = await _context.VenueStaff
+                .Where(s => matchingIds.Contains(s.VenueId) && s.IsActive && s.CanSendOffers)
+                .Select(s => s.UserId)
+                .ToListAsync();
+
+            var ownerIds = matching
                 .Select(v => v.OwnerId)
+                .Concat(staffIds)
                 .Distinct()
                 .ToList();
-
-            if (ownerIds.Count == 0) return;
 
             var date = request.IsDateFlexible
                 ? "tarix çevikdir"
@@ -618,6 +630,18 @@ namespace Business.Concrete
                     "Sorğu 7 gün açıq qalır. Panelin «Açıq sorğular» bölməsindən təklif göndərin.",
                     "/panel"),
                 NotificationChannels.InApp);
+        }
+
+        // Saray tərəfinə bildiriş: sahib + təklif göndərməyə səlahiyyəti olan
+        // administratorlar. Əvvəl yalnız sahibə gedirdi — təklifi administrator
+        // göndərsə də, müştərinin cavabından yalnız sahibin xəbəri olurdu.
+        private async Task NotifyVenueSideAsync(int venueId, NotificationMessage message)
+        {
+            var recipients = await _access.GetNotifyUserIdsAsync(
+                venueId, StaffPermission.SendOffers);
+
+            await _notifications.NotifyManyAsync(
+                recipients, message, NotificationChannels.InApp);
         }
 
         private async Task<VenueRequestDto> ToDtoAsync(VenueRequest request)
@@ -764,8 +788,8 @@ namespace Business.Concrete
             var customer = await _userDal.GetAsync(u => u.Id == customerId);
 
             if (venue is not null)
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         "Müştəri təklifinizi təsdiqlədi",
@@ -851,8 +875,8 @@ namespace Business.Concrete
 
             if (isCustomer && venue is not null)
             {
-                await _notifications.NotifyAsync(
-                    venue.OwnerId,
+                await NotifyVenueSideAsync(
+                    venue.Id,
                     new NotificationMessage(
                         NotificationType.SystemMessage,
                         $"Yeni mesaj — {sender?.FullName ?? "müştəri"}",

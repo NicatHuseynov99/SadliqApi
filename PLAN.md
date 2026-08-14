@@ -32,31 +32,21 @@ Sonuncu cümlə problemdir və plan ondan başlayır.
 
 ---
 
-## 1. Dəstək rolunun səlahiyyəti həddindən artıqdır
+## 1. Dəstəyin səlahiyyəti — qərar verildi, dəyişmir
 
-**Boşluq.** `VenueAccessManager.HasPlatformWideAccessAsync` dəstəyi admin ilə
-eyni sayır. Bu funksiya `IsOwnerAsync`-ə qidalandığı üçün dəstək işçisi
-**hər sarayda sahib kimi** davranır: sarayın məlumatını dəyişə, rezervi
-təsdiqləyə, təqvimi redaktə edə, administratorun səlahiyyətlərini dəyişə
-bilər.
+`VenueAccessManager.HasPlatformWideAccessAsync` dəstəyi admin ilə eyni sayır,
+ona görə dəstək işçisi hər sarayda sahib kimi davranır: sarayı dəyişə,
+rezervi təsdiqləyə, təqvimi redaktə edə bilir.
 
-Dəstəyin işi vasitəçilikdir — yazışmanı oxumaq, mübahisəni həll etmək,
-tərəfləri barışdırmaq. Sarayı idarə etmək deyil. Hazırkı qurğuda dəstək
-işçisinin səhvən (və ya qəsdən) etdiyi dəyişikliyi sahib öz panelində
-görür, amma qarşısını alan heç nə yoxdur.
+Əvvəlcə bunu məhdudlaşdırmağı təklif etmişdim — dəstəyin işi vasitəçilikdir
+deyə. **Təklif rədd edildi və səbəb yerindədir:** dəstək kənar tərəf deyil,
+platformanın öz işçisidir və sahibkarın edə bildiyi hər şeyi edə bilməlidir.
+Vasitəçi modeli burada uyğun gəlmir.
 
-**Təklif.** «Görmək» ilə «etmək» ayrılsın:
+Deməli mövcud qurğu saxlanılır. Bunun əvəzini audit izi verir: dəstəyin hər
+addımı `AuditActionFilter` ilə qeydə düşür və sahib öz panelində görür.
 
-- `HasPlatformWideReadAsync` — dəstək + admin. Hər şeyi görür.
-- `HasPlatformWideWriteAsync` — yalnız admin. Kənardan müdaxilə edə bilir.
-- `IsOwnerAsync` yalnız birincidən qidalanmasın.
-
-Dəstəyə lazım olan müdaxilə (məsələn mübahisədən sonra rezervin ləğvi) artıq
-var və düzgün yerdədir: şikayət işi üzərindən, yazılı qərarla, iz qalaraq.
-Yan qapıya ehtiyac yoxdur.
-
-**Niyə birincidir.** Qalan bəndlərin hamısı rolların bir-birindən nə ilə
-fərqləndiyi üzərində qurulub. Fərq indi kodda tam deyil.
+Bu bənd bağlıdır, koda toxunulmur.
 
 ---
 
@@ -167,7 +157,7 @@ bənddəki müraciət növü burada da işləyir, sadəcə açan tərəf admindi
 
 | Sıra | İş | Səbəb |
 |---|---|---|
-| 1 | Dəstəyin səlahiyyətinin bölünməsi | rolların fərqi kodda tam deyil, qalan hər şey bunun üstündədir |
+| ~~1~~ | ~~Dəstəyin səlahiyyətinin bölünməsi~~ | qərar: dəstək platformanın işçisidir, səlahiyyəti qalır |
 | 2 | Bildirişlərin administratora yönlənməsi | səlahiyyət verdik, xəbəri vermədik — yarımçıq iş |
 | 3 | `RespondedByUserId` | kiçik dəyişiklik, sahibə cavabdehlik görünüşü verir |
 | 4 | Rezervə bağlı yazışma | müştərinin bu gün üzləşdiyi boşluq |
