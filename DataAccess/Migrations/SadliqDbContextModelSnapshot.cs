@@ -711,11 +711,14 @@ namespace DataAccess.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("OfferId")
+                    b.Property<int?>("OfferId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReservationId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("SenderUserId")
                         .HasColumnType("integer");
@@ -725,6 +728,8 @@ namespace DataAccess.Migrations
                     b.HasIndex("SenderUserId");
 
                     b.HasIndex("OfferId", "CreatedAt");
+
+                    b.HasIndex("ReservationId", "CreatedAt");
 
                     b.ToTable("OfferMessages");
                 });
@@ -1731,8 +1736,12 @@ namespace DataAccess.Migrations
                     b.HasOne("Entities.Concrete.VenueOffer", "Offer")
                         .WithMany("Messages")
                         .HasForeignKey("OfferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Entities.Concrete.Reservation", "Reservation")
+                        .WithMany()
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Entities.Concrete.User", "Sender")
                         .WithMany()
@@ -1741,6 +1750,8 @@ namespace DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Offer");
+
+                    b.Navigation("Reservation");
 
                     b.Navigation("Sender");
                 });

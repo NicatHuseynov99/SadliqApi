@@ -9,8 +9,18 @@ namespace Entities.Concrete
     {
         public int Id { get; set; }
 
-        public int OfferId { get; set; }
+        // Yazışma ya təklifə, ya da birbaşa rezervə bağlıdır — ikisindən biri dolu olur.
+        //
+        // Əvvəl yalnız təklif vardı. Müştəri sarayın səhifəsindən birbaşa rezerv
+        // edəndə təklif yaranmır, deməli yazışma da açılmırdı: tarix tutulurdu,
+        // amma «zala neçədə girə bilərik» sualı platformada verilə bilmirdi.
+        // Söhbət telefona keçirdi və mübahisə olanda adminin əlində heç nə
+        // qalmırdı — halbuki yuxarıdakı şərhdə yazılan məqsəd elə budur.
+        public int? OfferId { get; set; }
         public VenueOffer? Offer { get; set; }
+
+        public int? ReservationId { get; set; }
+        public Reservation? Reservation { get; set; }
 
         public int SenderUserId { get; set; }
         public User? Sender { get; set; }

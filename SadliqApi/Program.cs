@@ -119,6 +119,7 @@ builder.Services.AddScoped<IAdminVenueService, AdminVenueManager>();
 builder.Services.AddScoped<IDataExplorerService, DataExplorerManager>();
 builder.Services.AddScoped<IVenueApplicationService, VenueApplicationManager>();
 builder.Services.AddScoped<IVenueRequestService, VenueRequestManager>();
+builder.Services.AddScoped<IReservationChatService, ReservationChatManager>();
 builder.Services.AddScoped<IOwnerStatsService, OwnerStatsManager>();
 builder.Services.AddScoped<IAdminChatService, AdminChatManager>();
 builder.Services.AddScoped<IDisputeService, DisputeManager>();

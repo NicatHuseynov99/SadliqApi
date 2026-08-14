@@ -227,7 +227,15 @@ namespace DataAccess.Concrete.EntityFramework.Contexts
                 .HasForeignKey(m => m.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Birbaşa rezervin yazışması. Rezerv silinsə söhbət də getsin —
+            // təklifdə olduğu kimi.
+            b.Entity<OfferMessage>()
+                .HasOne(m => m.Reservation).WithMany()
+                .HasForeignKey(m => m.ReservationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             b.Entity<OfferMessage>().HasIndex(m => new { m.OfferId, m.CreatedAt });
+            b.Entity<OfferMessage>().HasIndex(m => new { m.ReservationId, m.CreatedAt });
 
             // Sorğunu açan işçi silinsə, rezerv qalsın
             b.Entity<Reservation>()
