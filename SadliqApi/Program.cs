@@ -179,6 +179,15 @@ builder.Services.AddAuthorization();
 
 // Sorğu tezliyinə məhdudiyyət. Hədəf üç yerdir: parol sınağı, rəy spamı,
 // fayl yükləmə. Limit IP üzrədir — hesab açmadan da hücum etmək olar.
+// Limitlər konfiqurasiyadan oxunur. Defolt dəyərlər əvvəlki kimidir — bu,
+// məhdudiyyəti zəiflətmək üçün deyil, uçdan-uca yoxlamanın onlarla sorğunu
+// ardıcıl atması üçündür. Test işlədilərkən RateLimiting__Write kimi mühit
+// dəyişəni ilə qaldırılır, iş rejimində isə heç nə dəyişmir.
+var rateLimits = builder.Configuration.GetSection("RateLimiting");
+var authLimit = rateLimits.GetValue("Auth", 8);
+var writeLimit = rateLimits.GetValue("Write", 10);
+var uploadLimit = rateLimits.GetValue("Upload", 30);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -193,17 +202,17 @@ builder.Services.AddRateLimiter(options =>
     // Giriş, qeydiyyat, parol bərpası — dəqiqədə 8 cəhd
     options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
         ClientKey(context),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 8, Window = TimeSpan.FromMinutes(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = authLimit, Window = TimeSpan.FromMinutes(1) }));
 
     // Rəy, rezerv, şikayət kimi məzmun yaradan əməliyyatlar — dəqiqədə 10
     options.AddPolicy("write", context => RateLimitPartition.GetFixedWindowLimiter(
         ClientKey(context),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = writeLimit, Window = TimeSpan.FromMinutes(1) }));
 
     // Fayl yükləmə — saatda 30 fayl
     options.AddPolicy("upload", context => RateLimitPartition.GetFixedWindowLimiter(
         ClientKey(context),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromHours(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = uploadLimit, Window = TimeSpan.FromHours(1) }));
 });
 
 // Giriş etmiş istifadəçi öz hesabı üzrə, qonaq isə IP üzrə sayılır
