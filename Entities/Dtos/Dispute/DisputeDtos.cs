@@ -76,6 +76,11 @@ namespace Entities.Dtos.Dispute
         public int Id { get; set; }
         public string SenderName { get; set; } = string.Empty;
         public bool IsFromStaff { get; set; }
+
+        // Mesajı soruşan istifadəçinin özü yazıb, yoxsa qarşı tərəf.
+        // Göndərənin id-si qaytarılmır: ekranın ehtiyacı yalnız budur,
+        // istifadəçi id-lərini yaymağın isə heç bir faydası yoxdur.
+        public bool IsMine { get; set; }
         public bool IsInternalNote { get; set; }
         public string Body { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }

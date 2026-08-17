@@ -190,6 +190,7 @@ namespace Business.Concrete
                         ? "—"
                         : (m.Sender.FirstName + " " + m.Sender.LastName).Trim(),
                     IsFromStaff = m.IsFromStaff,
+                    IsMine = m.SenderUserId == userId,
                     IsInternalNote = m.IsInternalNote,
                     Body = m.Body,
                     CreatedAt = m.CreatedAt
