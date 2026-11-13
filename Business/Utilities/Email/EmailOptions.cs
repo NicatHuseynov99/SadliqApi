@@ -8,8 +8,8 @@ namespace Business.Utilities.Email
         public int Port { get; set; } = 587;
         public string User { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-        public string From { get; set; } = "no-reply@sadliqsaraylari.az";
-        public string FromName { get; set; } = "Şadlıq Sarayları";
+        public string From { get; set; } = "no-reply@toyun.az";
+        public string FromName { get; set; } = "TOYUN";
         public bool EnableSsl { get; set; } = true;
 
         // Parol sıfırlama linki bu ünvanla qurulur

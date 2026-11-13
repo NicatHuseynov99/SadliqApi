@@ -64,7 +64,7 @@ namespace Business.Concrete.Notifications
                   <p style='line-height:1.6;white-space:pre-line'>{message.Body}</p>
                   {button}
                   <hr style='border:none;border-top:1px solid #efe7ea;margin:24px 0 12px' />
-                  <p style='color:#a6969c;font-size:12px'>Şadlıq Sarayları</p>
+                  <p style='color:#a6969c;font-size:12px'>TOYUN</p>
                 </div>";
 
             await _email.SendAsync(user.Email, message.Title, body);
